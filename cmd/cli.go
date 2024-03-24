@@ -2,8 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/phsym/console-slog"
 	"github.com/spf13/cobra"
+	"log/slog"
 	"os"
+	"time"
 )
 
 type CLI struct {
@@ -15,7 +18,28 @@ func NewCLI() *CLI {
 	command := cobra.Command{
 		Use:   "aman",
 		Short: "Various audio management tools.",
+		PersistentPreRun: func(cmd *cobra.Command, _ []string) {
+			levelFlag, err := cmd.Flags().GetString("log")
+			if err != nil {
+				panic(err)
+			}
+			level := slog.LevelInfo
+			switch levelFlag {
+			case "verbose":
+				level = slog.LevelDebug
+			case "quiet":
+				level = slog.LevelWarn
+			}
+			slog.SetDefault(slog.New(
+				console.NewHandler(os.Stderr, &console.HandlerOptions{
+					Level:      level,
+					TimeFormat: time.Kitchen,
+				}),
+			))
+		},
 	}
+	command.AddCommand(newMetaCommand())
+	command.PersistentFlags().String("log", "default", "Configure log level [default/verbose/quiet]")
 	return &CLI{command: &command}
 }
 
