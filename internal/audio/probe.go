@@ -11,6 +11,15 @@ import (
 	"time"
 )
 
+var Groups = map[string]bool{
+	"320":     true,
+	"128":     true,
+	"flac":    true,
+	"unknown": true,
+	"ll":      false, // Legacy group.
+	"l":       false, // Legacy group.
+}
+
 var ErrNotAudioFile = errors.New("not an audio file")
 
 func Probe(filename string) (ProbedAudio, error) {
@@ -42,14 +51,29 @@ func Probe(filename string) (ProbedAudio, error) {
 		bitrate = uint64(float64(size)/duration) * 8
 	}
 
-	return ProbedAudio{
+	p := ProbedAudio{
 		CodecName: data.Streams[0].CodecName,
 		BitRate:   bitrate,
 		Duration:  time.Duration(duration) * time.Second,
 		Size:      size,
 		Filename:  filename,
 		Tags:      data.Format.Tags,
-	}, nil
+	}
+	p.Group = groupAudio(p)
+	return p, nil
+}
+
+func groupAudio(audio ProbedAudio) string {
+	if audio.CodecName == "flac" {
+		return "flac"
+	}
+	if audio.CodecName == "mp3" {
+		if audio.BitRate >= 320000 {
+			return "320"
+		}
+		return "128"
+	}
+	return "unknown"
 }
 
 type stream struct {
@@ -83,6 +107,7 @@ type ProbedAudio struct {
 	Size      uint64        `json:"size,omitempty"`
 	Filename  string        `json:"filename,omitempty"`
 	Tags      Tags          `json:"tags,omitempty"`
+	Group     string        `json:"-"`
 }
 
 func (r ProbedAudio) Print() {
