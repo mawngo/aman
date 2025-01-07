@@ -5,6 +5,7 @@ import (
 	"github.com/charlievieth/fastwalk"
 	"github.com/samber/lo"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,12 +29,6 @@ func WithDepth(depth int) ProcessAudioOption {
 func WithConcurrency(concurrency int) ProcessAudioOption {
 	return func(config *processAudioConfig) {
 		config.concurrency = concurrency
-	}
-}
-
-func WithForcedDir(name string) ProcessAudioOption {
-	return func(config *processAudioConfig) {
-		config.forcedDir = name
 	}
 }
 
@@ -73,14 +68,12 @@ func ProcessAudio(root string, handler func(audio ProbedAudio), opts ...ProcessA
 		}
 
 		if d.IsDir() {
-			if enabled, ok := Groups[d.Name()]; ok && d.Name() != conf.forcedDir && enabled {
-				return fs.SkipDir
-			}
 			return nil
 		}
 
 		audio, err := Probe(path)
 		if err != nil {
+			slog.Debug("Error probing audio", slog.Any("err", err))
 			return nil
 		}
 		handler(audio)
