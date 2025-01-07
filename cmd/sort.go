@@ -5,6 +5,7 @@ import (
 	"aman/internal/utils"
 	"errors"
 	"github.com/spf13/cobra"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -106,7 +107,7 @@ type sortFlags struct {
 
 func removableGroupDir(path string) bool {
 	s, err := os.Stat(path)
-	if errors.Is(err, os.ErrNotExist) {
+	if errors.Is(err, fs.ErrNotExist) {
 		return false
 	}
 	if !s.IsDir() {
