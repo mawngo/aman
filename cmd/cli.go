@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"aman/internal/audio"
 	"fmt"
 	"github.com/phsym/console-slog"
 	"github.com/spf13/cobra"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -17,7 +19,7 @@ type CLI struct {
 func NewCLI() *CLI {
 	command := cobra.Command{
 		Use:   "aman",
-		Short: "Various audio management tools.",
+		Short: "Music management tools (" + strings.Join(audio.SupportedExtensions, ", ") + ")",
 		PersistentPreRun: func(cmd *cobra.Command, _ []string) {
 			levelFlag, err := cmd.Flags().GetString("log")
 			if err != nil {
@@ -40,6 +42,7 @@ func NewCLI() *CLI {
 	}
 	command.AddCommand(newMetaCommand())
 	command.AddCommand(newSortCommand())
+	command.AddCommand(newCopyCommand())
 	command.PersistentFlags().String("log", "default", "Configure log level [default/verbose/quiet]")
 	return &CLI{command: &command}
 }

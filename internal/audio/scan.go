@@ -8,9 +8,12 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync/atomic"
 )
+
+var SupportedExtensions = []string{".flac", ".mp3"}
 
 type processAudioConfig struct {
 	depth       int
@@ -60,17 +63,22 @@ func ProcessAudio(root string, handler func(audio ProbedAudio), opts ...ProcessA
 	count := atomic.Int64{}
 	c := &fastwalk.Config{NumWorkers: conf.concurrency, Follow: true, Sort: conf.sort}
 	err = fastwalk.Walk(c, root, func(path string, d fs.DirEntry, err error) error {
-		path = lo.Must(filepath.Rel(root, path))
 		if err != nil {
 			return err
 		}
-
+		path = filepath.Clean(path)
 		// Check depth limit.
-		if conf.depth >= 0 && d.IsDir() && strings.Count(path, string(os.PathSeparator)) > conf.depth {
+		rel := lo.Must(filepath.Rel(root, path))
+		if conf.depth >= 0 && d.IsDir() && strings.Count(rel, string(os.PathSeparator)) > conf.depth {
 			return fs.SkipDir
 		}
 
 		if d.IsDir() {
+			return nil
+		}
+
+		if !slices.Contains(SupportedExtensions, filepath.Ext(path)) {
+			slog.Debug("Not supported file", slog.Any("file", path))
 			return nil
 		}
 

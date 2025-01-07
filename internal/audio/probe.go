@@ -12,12 +12,11 @@ import (
 )
 
 var Groups = map[string]bool{
-	"320":     true,
-	"128":     true,
-	"flac":    true,
-	"unknown": true,
-	"ll":      false, // Legacy group.
-	"l":       false, // Legacy group.
+	"320":  true,
+	"128":  true,
+	"flac": true,
+	"ll":   false, // Legacy group.
+	"l":    false, // Legacy group.
 }
 
 var ErrNotAudioFile = errors.New("not an audio file")
