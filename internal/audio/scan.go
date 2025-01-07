@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 )
 
 type processAudioConfig struct {
@@ -32,7 +33,7 @@ func WithConcurrency(concurrency int) ProcessAudioOption {
 	}
 }
 
-func ProcessAudio(root string, handler func(audio ProbedAudio), opts ...ProcessAudioOption) error {
+func ProcessAudio(root string, handler func(audio ProbedAudio), opts ...ProcessAudioOption) (int64, error) {
 	conf := processAudioConfig{
 		depth:       5,
 		concurrency: 0,
@@ -44,17 +45,19 @@ func ProcessAudio(root string, handler func(audio ProbedAudio), opts ...ProcessA
 
 	stats, err := os.Stat(root)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	if !stats.IsDir() {
 		audio, err := Probe(root)
 		if err != nil {
-			return err
+			return 0, err
 		}
 		handler(audio)
-		return nil
+		return 1, nil
 	}
+
+	count := atomic.Int64{}
 	c := &fastwalk.Config{NumWorkers: conf.concurrency, Follow: true, Sort: conf.sort}
 	err = fastwalk.Walk(c, root, func(path string, d fs.DirEntry, err error) error {
 		path = lo.Must(filepath.Rel(root, path))
@@ -76,11 +79,12 @@ func ProcessAudio(root string, handler func(audio ProbedAudio), opts ...ProcessA
 			slog.Debug("Error probing audio", slog.Any("err", err))
 			return nil
 		}
+		count.Add(1)
 		handler(audio)
 		return nil
 	})
 	if err != nil && !errors.Is(err, fs.SkipDir) {
-		return err
+		return count.Load(), err
 	}
-	return nil
+	return count.Load(), nil
 }

@@ -45,10 +45,9 @@ func newSortCommand() *cobra.Command {
 
 			slog.Info("Scanning audio files...")
 			start := time.Now()
-			count := atomic.Int64{}
 			moved := atomic.Int64{}
 			parents := sync.Map{}
-			err := audio.ProcessAudio(args[0], func(a audio.ProbedAudio) {
+			count, err := audio.ProcessAudio(args[0], func(a audio.ProbedAudio) {
 				parentDir := filepath.Dir(a.Filename)
 				parentDirName := filepath.Base(parentDir)
 				if _, ok := audio.Groups[parentDirName]; ok {
@@ -61,7 +60,6 @@ func newSortCommand() *cobra.Command {
 
 				parents.Store(parentDir, struct{}{})
 				dest := filepath.Join(parentDir, group, filepath.Base(a.Filename))
-				count.Add(1)
 				a.Print()
 				if utils.MoveFile(a.Filename, dest) {
 					moved.Add(1)
@@ -88,7 +86,7 @@ func newSortCommand() *cobra.Command {
 				return true
 			})
 			slog.Info("Audio files sorted",
-				slog.Int64("count", count.Load()),
+				slog.Int64("count", count),
 				slog.Int64("moved", moved.Load()),
 				slog.String("took", time.Since(start).String()))
 		},
