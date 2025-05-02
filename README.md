@@ -4,7 +4,7 @@ Music management tools.
 
 ## Installation
 
-Require go 1.23+ and `ffprobe` present on `$PATH`.
+Require go 1.24+ and `ffprobe` present on `$PATH`.
 
 ```shell
 go install github.com/mawngo/aman@latest
