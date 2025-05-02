@@ -45,6 +45,9 @@ func Probe(filename string) (ProbedAudio, error) {
 	duration := lo.Must(strconv.ParseFloat(data.Format.Duration, 64))
 	size := lo.Must(strconv.ParseUint(data.Format.Size, 10, 64))
 	bitrate, err := strconv.ParseUint(data.Streams[0].BitRate, 10, 64)
+	if err != nil {
+		return ProbedAudio{}, err
+	}
 	if bitrate == 0 {
 		// Calculate bitrate manually.
 		bitrate = uint64(float64(size)/duration) * 8

@@ -29,7 +29,7 @@ func newCopyCommand() *cobra.Command {
 		Use:   "copy <src> <target>",
 		Short: "Selectively copy music files by bitrate",
 		Args:  cobra.ExactArgs(2),
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, args []string) {
 			if !slices.Contains(f.order, "128") {
 				// Always fallback to 128.
 				f.order = append(f.order, "128")
@@ -65,7 +65,6 @@ func newCopyCommand() *cobra.Command {
 				if cpy(a, dest, f.order, lock) {
 					copied.Add(1)
 				}
-				return
 			})
 			if err != nil {
 				slog.Error("Error copy audio files", slog.Any("err", err))

@@ -27,7 +27,7 @@ func newSortCommand() *cobra.Command {
 		Use:   "sort <dir>",
 		Short: "Organize audio files by bitrate",
 		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(_ *cobra.Command, args []string) {
 			if f.rootLevel != "" {
 				if enabled, ok := audio.Groups[f.rootLevel]; !ok || !enabled {
 					supported := make([]string, 0, len(audio.Groups))

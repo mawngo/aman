@@ -19,7 +19,6 @@ type processAudioConfig struct {
 	depth       int
 	concurrency int
 	sort        fastwalk.SortMode
-	forcedDir   string
 }
 
 type ProcessAudioOption func(*processAudioConfig)

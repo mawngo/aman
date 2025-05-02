@@ -5,6 +5,8 @@
 # it contains the exhaustive configuration with explanations of the options.
 
 # Options for analysis running.
+version: "2"
+
 run:
   concurrency: 4
   timeout: 1m
