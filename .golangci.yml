@@ -1,22 +1,20 @@
-# This file contains all available configuration options
-# with their default values (in comments).
-#
-# This file is not a configuration example,
-# it contains the exhaustive configuration with explanations of the options.
-
-# Options for analysis running.
-version: "2"
-
+version: 2
 run:
   concurrency: 4
-  timeout: 1m
+  timeout: 2m
   issues-exit-code: 1
-
+output:
+  show-stats: false
 
 linters:
+  exclusions:
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
   enable:
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
