@@ -30,6 +30,10 @@ func newCopyCommand() *cobra.Command {
 		Short: "Selectively copy music files by bitrate",
 		Args:  cobra.ExactArgs(2),
 		Run: func(_ *cobra.Command, args []string) {
+			f.order = lo.FlatMap(f.order, func(item string, _ int) []string {
+				return strings.Split(item, ",")
+			})
+
 			if !slices.Contains(f.order, "128") {
 				// Always fallback to 128.
 				f.order = append(f.order, "128")
