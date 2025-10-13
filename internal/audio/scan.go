@@ -83,7 +83,7 @@ func ProcessAudio(root string, handler func(audio ProbedAudio), opts ...ProcessA
 
 		audio, err := Probe(path)
 		if err != nil {
-			slog.Debug("Error probing audio", slog.Any("err", err))
+			slog.Warn("Error probing audio", slog.Any("err", err))
 			return nil
 		}
 		count.Add(1)
