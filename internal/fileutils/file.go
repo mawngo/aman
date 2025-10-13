@@ -1,4 +1,4 @@
-package utils
+package fileutils
 
 import (
 	"github.com/dustin/go-humanize"

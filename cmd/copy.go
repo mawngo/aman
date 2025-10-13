@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"aman/internal/audio"
-	"aman/internal/utils"
+	"aman/internal/fileutils"
 	"errors"
 	"github.com/mawngo/go-maplock"
 	"github.com/samber/lo"
@@ -105,9 +105,9 @@ func cpy(a audio.ProbedAudio, dest string, orders []string, lock *maplock.MapLoc
 			return false
 		}
 		if slices.Index(orders, destProbe.Group) > slices.Index(orders, a.Group) {
-			return utils.CopyFile(a.Filename, dest)
+			return fileutils.CopyFile(a.Filename, dest)
 		}
 		return false
 	}
-	return utils.CopyFile(a.Filename, dest)
+	return fileutils.CopyFile(a.Filename, dest)
 }

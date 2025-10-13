@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"aman/internal/audio"
-	"aman/internal/utils"
+	"aman/internal/fileutils"
 	"errors"
 	"github.com/spf13/cobra"
 	"io/fs"
@@ -61,7 +61,7 @@ func newSortCommand() *cobra.Command {
 				parents.Store(parentDir, struct{}{})
 				dest := filepath.Join(parentDir, group, filepath.Base(a.Filename))
 				a.Print()
-				if utils.MoveFile(a.Filename, dest) {
+				if fileutils.MoveFile(a.Filename, dest) {
 					moved.Add(1)
 				}
 			},
@@ -111,7 +111,7 @@ func removableGroupDir(path string) bool {
 	if !s.IsDir() {
 		return false
 	}
-	size := utils.DirSize(path)
+	size := fileutils.DirSize(path)
 	// Remove if size < 100Kb.
 	// We don't check for empty because there may be hidden albums/cover files.
 	return size < 100_000
