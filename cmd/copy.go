@@ -53,7 +53,7 @@ func newCopyCommand() *cobra.Command {
 				filename := filepath.Base(a.Filename)
 				if f.flat {
 					dest := filepath.Join(target, filename)
-					if cpy(a, dest, f.order, lock) {
+					if cpy(a, dest, f.order, lock, f.dryRun) {
 						copied.Add(1)
 					}
 					return
@@ -66,7 +66,7 @@ func newCopyCommand() *cobra.Command {
 
 				rel := lo.Must(filepath.Rel(args[0], parent))
 				dest := filepath.Join(target, rel, filename)
-				if cpy(a, dest, f.order, lock) {
+				if cpy(a, dest, f.order, lock, f.dryRun) {
 					copied.Add(1)
 				}
 			})
@@ -84,6 +84,7 @@ func newCopyCommand() *cobra.Command {
 	command.Flags().IntVar(&f.depth, "depth", f.depth, "Maximum depth to search for audio files")
 	command.Flags().BoolVar(&f.flat, "flat", f.flat, "Flatten directory structure")
 	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "Number of thread to use")
+	command.Flags().BoolVar(&f.dryRun, "dry-run", f.dryRun, "Test run without coping files")
 	return &command
 }
 
@@ -92,9 +93,10 @@ type copyFlags struct {
 	flat        bool
 	depth       int
 	concurrency int
+	dryRun      bool
 }
 
-func cpy(a audio.ProbedAudio, dest string, orders []string, lock *maplock.MapLock[string]) bool {
+func cpy(a audio.ProbedAudio, dest string, orders []string, lock *maplock.MapLock[string], dryRun bool) bool {
 	base := strings.TrimSuffix(dest, filepath.Ext(dest))
 	lock.Lock(base)
 	defer lock.Unlock(base)
@@ -109,9 +111,17 @@ func cpy(a audio.ProbedAudio, dest string, orders []string, lock *maplock.MapLoc
 			return false
 		}
 		if slices.Index(orders, destProbe.Group) > slices.Index(orders, a.Group) {
-			return fileutils.CopyFile(a.Filename, dest)
+			return fileutils.CopyFile(fileutils.MoveConfig{
+				Src:    a.Filename,
+				Dest:   dest,
+				DryRun: dryRun,
+			})
 		}
 		return false
 	}
-	return fileutils.CopyFile(a.Filename, dest)
+	return fileutils.CopyFile(fileutils.MoveConfig{
+		Src:    a.Filename,
+		Dest:   dest,
+		DryRun: dryRun,
+	})
 }

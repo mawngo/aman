@@ -25,7 +25,7 @@ func newSortCommand() *cobra.Command {
 
 	command := cobra.Command{
 		Use:   "sort <dir>",
-		Short: "Organize audio files by bitrate",
+		Short: "Organize audio files to groups by bitrate",
 		Args:  cobra.ExactArgs(1),
 		Run: func(_ *cobra.Command, args []string) {
 			if f.rootLevel != "" {
@@ -60,9 +60,13 @@ func newSortCommand() *cobra.Command {
 				}
 
 				parents.Store(parentDir, struct{}{})
-				dest := filepath.Join(parentDir, group, filepath.Base(a.Filename))
 				a.Print()
-				if fileutils.MoveFile(a.Filename, dest) {
+				mv := fileutils.MoveConfig{
+					Src:    a.Filename,
+					Dest:   filepath.Join(parentDir, group, filepath.Base(a.Filename)),
+					DryRun: f.dryRun,
+				}
+				if fileutils.MoveFile(mv) {
 					moved.Add(1)
 				}
 			},
@@ -72,20 +76,24 @@ func newSortCommand() *cobra.Command {
 				slog.Error("Error sorting audio files", slog.Any("err", err))
 				return
 			}
-			parents.Range(func(parent, _ any) bool {
-				for group := range audio.Groups {
-					dir := filepath.Join(parent.(string), group)
-					if !removableGroupDir(dir) {
-						return true
+
+			if !f.dryRun {
+				parents.Range(func(parent, _ any) bool {
+					for group := range audio.Groups {
+						dir := filepath.Join(parent.(string), group)
+						if !removableGroupDir(dir) {
+							return true
+						}
+						if err := os.RemoveAll(dir); err != nil {
+							slog.Error("Error removing empty directory", slog.String("dir", dir), slog.Any("err", err))
+							return true
+						}
+						slog.Info("Removed empty directory", slog.String("dir", dir))
 					}
-					if err := os.RemoveAll(dir); err != nil {
-						slog.Error("Error removing empty directory", slog.String("dir", dir), slog.Any("err", err))
-						return true
-					}
-					slog.Info("Removed empty directory", slog.String("dir", dir))
-				}
-				return true
-			})
+					return true
+				})
+			}
+
 			slog.Info("Audio files sorted",
 				slog.Int64("count", count),
 				slog.Int64("moved", moved.Load()),
@@ -95,6 +103,7 @@ func newSortCommand() *cobra.Command {
 	command.Flags().StringVarP(&f.rootLevel, "root-group", "g", f.rootLevel, "Group of audio that will be placed at root directory")
 	command.Flags().IntVar(&f.depth, "depth", f.depth, "Maximum depth to search for audio files")
 	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "Number of thread to use")
+	command.Flags().BoolVar(&f.dryRun, "dry-run", f.dryRun, "Test run without moving files")
 	return &command
 }
 
@@ -102,6 +111,7 @@ type sortFlags struct {
 	rootLevel   string
 	depth       int
 	concurrency int
+	dryRun      bool
 }
 
 func removableGroupDir(path string) bool {

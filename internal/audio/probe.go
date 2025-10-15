@@ -15,7 +15,11 @@ const (
 	Group128Mp3 = "128mp3"
 	Group320Mp3 = "320mp3"
 	GroupFLAC   = "flac"
-	Unknown     = "unknown"
+
+	TypeMp3  = "mp3"
+	TypeFlac = "flac"
+
+	Unknown = "unknown"
 )
 
 var Groups = map[string]bool{
@@ -84,10 +88,10 @@ func Probe(filename string) (ProbedAudio, error) {
 }
 
 func groupAudio(audio ProbedAudio) string {
-	if audio.CodecName == "flac" {
+	if audio.CodecName == TypeFlac {
 		return GroupFLAC
 	}
-	if audio.CodecName == "mp3" {
+	if audio.CodecName == TypeMp3 {
 		if audio.BitRate >= 320000 {
 			return Group320Mp3
 		}

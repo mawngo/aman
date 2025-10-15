@@ -12,46 +12,60 @@ import (
 var createdDir sync.Map
 
 type MoveConfig struct {
-	Src string
-	Dst string
+	Src    string
+	Dest   string
+	DryRun bool
 }
 
-func MoveFile(src string, dest string) bool {
-	if src == dest {
+func MoveFile(conf MoveConfig) bool {
+	if conf.Src == conf.Dest {
 		return false
 	}
-	destDir := filepath.Dir(dest)
+	destDir := filepath.Dir(conf.Dest)
+	slog.Info("Move", slog.String("src", conf.Src), slog.String("to", destDir))
+
+	if conf.DryRun {
+		return false
+	}
+
 	EnsureDir(destDir)
-	slog.Info("Move", slog.String("src", src), slog.String("to", destDir))
-	err := os.Rename(src, dest)
+	err := os.Rename(conf.Src, conf.Dest)
 	if err != nil {
-		slog.Error("Move Error", slog.String("src", src), slog.String("dst", dest), slog.Any("err", err))
+		slog.Error("Move Error",
+			slog.String("src", conf.Src),
+			slog.String("dst", conf.Dest),
+			slog.Any("err", err))
 	}
 	return true
 }
 
-func CopyFile(src string, dest string) bool {
-	destDir := filepath.Dir(dest)
+func CopyFile(conf MoveConfig) bool {
+	destDir := filepath.Dir(conf.Dest)
 	EnsureDir(destDir)
-	slog.Info("Copy", slog.String("src", src), slog.String("to", destDir))
+	slog.Info("Copy",
+		slog.String("src", conf.Src),
+		slog.String("to", destDir))
+	if conf.DryRun {
+		return false
+	}
 
-	r, err := os.Open(src)
+	r, err := os.Open(conf.Src)
 	if err != nil {
-		slog.Error("Cannot open source file", slog.String("src", src), slog.Any("err", err))
+		slog.Error("Cannot open source file", slog.String("src", conf.Src), slog.Any("err", err))
 		return false
 	}
 	defer r.Close()
-	w, err := os.Create(dest)
+	w, err := os.Create(conf.Dest)
 	if err != nil {
-		slog.Error("Cannot create destination file", slog.String("src", src), slog.Any("err", err))
+		slog.Error("Cannot create destination file", slog.String("src", conf.Dest), slog.Any("err", err))
 		return false
 	}
 	defer w.Close()
 	written, err := io.Copy(w, r)
 	if err != nil {
 		slog.Error("Move Error",
-			slog.String("src", src),
-			slog.String("dst", dest),
+			slog.String("src", conf.Src),
+			slog.String("dst", conf.Dest),
 			slog.String("written", humanize.Bytes(uint64(written))),
 			slog.Any("err", err))
 		return false
