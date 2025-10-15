@@ -16,8 +16,8 @@ go install github.com/mawngo/aman@latest
 
 Organize music files into folder by bitrate
 
-- `320` >= 320kbps
-- `128` < 320kbps
+- `320mp3` >= 320kbps
+- `128mp3` < 320kbps
 - `flac` lossless
 
 ```shell
@@ -29,10 +29,10 @@ You can change this behavior using `-g` flag.
 
 | Before        | After               |
 |---------------|---------------------|
-| 128.mp3       | /128/128.mp3        |
+| 128.mp3       | /128mp3/128.mp3     |
 | 320.mp3       | 320.mp3             |
 | 500.mp3       | 500.mp3             |
-| 96.mp3        | /128/96.mp3         |
+| 96.mp3        | /128mp3/96.mp3      |
 | lossless.flac | /flac/lossless.flac |
 
 ### Copy
@@ -43,13 +43,13 @@ Selectively copy music files from one directory to another, based on their bitra
 > aman .\mydir .\targetdir
 ```
 
-| mydir        | targetdir |
-|--------------|-----------|
-| /128/a.mp3   | -         |
-| /128/c.mp3   | c.mp3     |
-| /320/a.mp3   | a.mp3     |
-| /320/b.mp3   | -         |
-| /flac/b.flac | b.flac    |
+| mydir         | targetdir |
+|---------------|-----------|
+| /128mp3/a.mp3 | -         |
+| /128mp3/c.mp3 | c.mp3     |
+| /320mp3/a.mp3 | a.mp3     |
+| /320mp3/b.mp3 | -         |
+| /flac/b.flac  | b.flac    |
 
 ### Options
 

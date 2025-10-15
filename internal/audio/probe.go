@@ -11,12 +11,25 @@ import (
 	"time"
 )
 
+const (
+	Group128Mp3 = "128mp3"
+	Group320Mp3 = "320mp3"
+	GroupFLAC   = "flac"
+	Unknown     = "unknown"
+)
+
 var Groups = map[string]bool{
-	"320":  true,
-	"128":  true,
-	"flac": true,
-	"ll":   false, // Legacy group.
-	"l":    false, // Legacy group.
+	GroupFLAC: true,
+	// Mp3 320kbps.
+	Group320Mp3: true,
+	// Mp3 < 320kbps.
+	Group128Mp3: true,
+
+	// Legacy groups, for backward compatibility.
+	"320": false,
+	"128": false,
+	"ll":  false,
+	"l":   false,
 }
 
 var ErrNotAudioFile = errors.New("not an audio file")
@@ -72,15 +85,15 @@ func Probe(filename string) (ProbedAudio, error) {
 
 func groupAudio(audio ProbedAudio) string {
 	if audio.CodecName == "flac" {
-		return "flac"
+		return GroupFLAC
 	}
 	if audio.CodecName == "mp3" {
 		if audio.BitRate >= 320000 {
-			return "320"
+			return Group320Mp3
 		}
-		return "128"
+		return Group128Mp3
 	}
-	return "unknown"
+	return Unknown
 }
 
 type stream struct {

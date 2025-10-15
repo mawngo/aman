@@ -9,6 +9,7 @@ require (
 	github.com/phsym/console-slog v0.3.1
 	github.com/samber/lo v1.52.0
 	github.com/spf13/cobra v1.10.1
+	golang.org/x/sync v0.17.0
 )
 
 require (

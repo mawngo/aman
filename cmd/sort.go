@@ -18,7 +18,7 @@ import (
 
 func newSortCommand() *cobra.Command {
 	f := sortFlags{
-		rootLevel:   "320",
+		rootLevel:   audio.Group320Mp3,
 		depth:       5,
 		concurrency: runtime.NumCPU(),
 	}

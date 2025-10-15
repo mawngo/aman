@@ -15,20 +15,20 @@ import (
 
 func newChkCommand() *cobra.Command {
 	f := chkFlags{
-		bitrates:    []string{"flac", "320"},
+		groups:      []string{audio.GroupFLAC, audio.Group320Mp3},
 		depth:       -1,
 		concurrency: runtime.NumCPU(),
 	}
 
 	command := cobra.Command{
 		Use:   "bchk <dir>",
-		Short: "Checking missing audio files by bitrate",
+		Short: "Checking missing audio files by group",
 		Args:  cobra.ExactArgs(1),
 		Run: func(_ *cobra.Command, args []string) {
-			f.bitrates = lo.FlatMap(f.bitrates, func(item string, _ int) []string {
+			f.groups = lo.FlatMap(f.groups, func(item string, _ int) []string {
 				return strings.Split(item, ",")
 			})
-			bitrates := lo.SliceToMap(f.bitrates, func(item string) (string, struct{}) {
+			bitrates := lo.SliceToMap(f.groups, func(item string) (string, struct{}) {
 				return item, struct{}{}
 			})
 
@@ -125,15 +125,15 @@ func newChkCommand() *cobra.Command {
 		},
 	}
 
-	command.Flags().StringSliceVarP(&f.bitrates, "bitrates", "b", f.bitrates, "Bitrates to check for [flac, 320, 128]")
-	command.Flags().StringSliceVarP(&f.excludes, "excludes", "e", f.excludes, "Bitrates to exclude from [flac, 320, 128]")
+	command.Flags().StringSliceVarP(&f.groups, "groups", "g", f.groups, "Groups to check for")
+	command.Flags().StringSliceVarP(&f.excludes, "excludes", "e", f.excludes, "Groups to exclude from")
 	command.Flags().IntVar(&f.depth, "depth", f.depth, "Maximum depth to search for audio files")
 	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "Number of thread to use")
 	return &command
 }
 
 type chkFlags struct {
-	bitrates    []string
+	groups      []string
 	excludes    []string
 	depth       int
 	concurrency int

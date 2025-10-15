@@ -20,7 +20,7 @@ import (
 
 func newCopyCommand() *cobra.Command {
 	f := copyFlags{
-		order:       []string{"flac", "320"},
+		order:       []string{audio.GroupFLAC, audio.Group320Mp3},
 		depth:       -1,
 		concurrency: runtime.NumCPU(),
 	}
@@ -34,9 +34,9 @@ func newCopyCommand() *cobra.Command {
 				return strings.Split(item, ",")
 			})
 
-			if !slices.Contains(f.order, "128") {
+			if !slices.Contains(f.order, audio.Group128Mp3) {
 				// Always fallback to 128.
-				f.order = append(f.order, "128")
+				f.order = append(f.order, audio.Group128Mp3)
 			}
 
 			target := args[1]
@@ -80,7 +80,7 @@ func newCopyCommand() *cobra.Command {
 				slog.String("took", time.Since(start).String()))
 		},
 	}
-	command.Flags().StringSliceVarP(&f.order, "order", "o", f.order, "Preferred quality order")
+	command.Flags().StringSliceVarP(&f.order, "order", "o", f.order, "Preferred quality (group) order")
 	command.Flags().IntVar(&f.depth, "depth", f.depth, "Maximum depth to search for audio files")
 	command.Flags().BoolVar(&f.flat, "flat", f.flat, "Flatten directory structure")
 	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "Number of thread to use")
