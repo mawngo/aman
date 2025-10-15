@@ -5,11 +5,8 @@ import (
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"log/slog"
-	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -21,8 +18,8 @@ func newChkCommand() *cobra.Command {
 	}
 
 	command := cobra.Command{
-		Use:   "bchk <dir>",
-		Short: "Checking missing audio files by group",
+		Use:   "chk <dir>",
+		Short: "Checking missing audio files by bitrate group",
 		Args:  cobra.ExactArgs(1),
 		Run: func(_ *cobra.Command, args []string) {
 			f.groups = lo.FlatMap(f.groups, func(item string, _ int) []string {
@@ -39,48 +36,25 @@ func newChkCommand() *cobra.Command {
 				return item, struct{}{}
 			})
 
-			lock := sync.Mutex{}
-			checkMap := make(map[string]map[string]struct{})
-			cnt := atomic.Int64{}
-
+			start := time.Now()
 			slog.Info("Scanning audio files...")
-			done := make(chan struct{})
-			go func() {
-				ticker := time.NewTicker(5 * time.Second)
-				for {
-					select {
-					case <-done:
-						ticker.Stop()
-						return
-					case _ = <-ticker.C:
-						slog.Info("Scanning...", slog.Int64("files", cnt.Load()))
-					}
-				}
-			}()
-
-			_, err := audio.ProcessAudio(args[0], func(a audio.ProbedAudio) {
-				cnt.Add(1)
-				basename := filepath.Base(a.Filename)
-				basename = strings.TrimSuffix(basename, filepath.Ext(basename))
-				lock.Lock()
-				defer lock.Unlock()
-				check := checkMap[basename]
+			checkMap, cnt, err := audio.ProcessMapAudio(args[0], func(check map[string]struct{}, a audio.ProbedAudio) map[string]struct{} {
 				if check == nil {
 					check = make(map[string]struct{}, len(bitrates))
 				}
 				check[a.Group] = struct{}{}
-				checkMap[basename] = check
+				return check
 			},
 				audio.WithDepth(f.depth),
-				audio.WithConcurrency(f.concurrency))
-
-			done <- struct{}{}
+				audio.WithConcurrency(f.concurrency),
+				audio.WithProgress(true))
 			if err != nil {
 				slog.Error("Error checking audio files", slog.Any("err", err))
 				return
 			}
 
-			slog.Info("Checking missing audio bitrates...", slog.Int64("files", cnt.Load()))
+			missingCnt := 0
+			slog.Info("Checking missing audio bitrates...", slog.Int64("files", cnt))
 			for file, availableBitrates := range checkMap {
 				miss := make([]string, 0, len(bitrates))
 
@@ -102,10 +76,11 @@ func newChkCommand() *cobra.Command {
 						slog.String("available", strings.Join(avail, ",")),
 						slog.String("missing", strings.Join(miss, ",")),
 					)
+					missingCnt++
 					continue
 				}
 
-				// Excludes list exist.
+				// Excludes list exists.
 				// Only show files that missing more than one bitrate.
 				excluded := false
 				for availBitRate := range availableBitrates {
@@ -120,8 +95,13 @@ func newChkCommand() *cobra.Command {
 						slog.String("available", strings.Join(avail, ",")),
 						slog.String("missing", strings.Join(miss, ",")),
 					)
+					missingCnt++
 				}
 			}
+			slog.Info("Checking completed",
+				slog.Int64("count", cnt),
+				slog.Int("missing", missingCnt),
+				slog.String("took", time.Since(start).String()))
 		},
 	}
 

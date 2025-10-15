@@ -27,7 +27,7 @@ func newCopyCommand() *cobra.Command {
 
 	command := cobra.Command{
 		Use:   "copy <src> <target>",
-		Short: "Selectively copy music files by bitrate",
+		Short: "Selectively copy music files by bitrate group",
 		Args:  cobra.ExactArgs(2),
 		Run: func(_ *cobra.Command, args []string) {
 			f.order = lo.FlatMap(f.order, func(item string, _ int) []string {
@@ -74,9 +74,9 @@ func newCopyCommand() *cobra.Command {
 				slog.Error("Error copy audio files", slog.Any("err", err))
 				return
 			}
-			slog.Info("Audio files sorted",
+			slog.Info("Audio files copied",
 				slog.Int64("count", count),
-				slog.Int64("moved", copied.Load()),
+				slog.Int64("copied", copied.Load()),
 				slog.String("took", time.Since(start).String()))
 		},
 	}
