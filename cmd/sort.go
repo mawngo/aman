@@ -51,6 +51,7 @@ func newSortCommand() *cobra.Command {
 				parentDir := filepath.Dir(a.Filename)
 				parentDirName := filepath.Base(parentDir)
 				if _, ok := audio.Groups[parentDirName]; ok {
+					parents.Store(parentDir, struct{}{})
 					parentDir = filepath.Dir(parentDir)
 				}
 				group := a.Group
