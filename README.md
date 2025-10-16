@@ -6,6 +6,8 @@ Music management tools.
 
 Require go 1.24+ and `ffprobe` present on `$PATH`.
 
+If you are using conversion features, you will also need `ffmpeg` present on `$PATH`.
+
 ```shell
 go install github.com/mawngo/aman@latest
 ```
@@ -54,7 +56,7 @@ Selectively copy music files from one directory to another, based on their bitra
 ### Options
 
 ```
-> kcomp -h  
+> aman -h  
 Music management tools (.flac, .mp3)
 
 Usage:
@@ -62,8 +64,10 @@ Usage:
 
 Available Commands:
   meta        Print metadata of audio file
-  sort        Organize audio files by bitrate
-  copy        Selectively copy music files by bitrate
+  sort        Organize audio files to groups by bitrate
+  copy        Selectively copy music files by bitrate group
+  chk         Checking missing audio files by bitrate group
+  fill        Fill missing audio bitrate groups by converting from FLAC (require ffmpeg)
   help        Help about any command
   completion  Generate the autocompletion script for the specified shell
 
@@ -72,5 +76,4 @@ Flags:
       --log string   Configure log level [default/verbose/quiet] (default "default")
 
 Use "aman [command] --help" for more information about a command.
-
 ```
