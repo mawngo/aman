@@ -46,20 +46,22 @@ func newSortCommand() *cobra.Command {
 			slog.Info("Scanning audio files...")
 			start := time.Now()
 			moved := atomic.Int64{}
-			parents := sync.Map{}
+			lock := sync.Mutex{}
+			parents := make(map[string]struct{}, 100)
 			count, err := audio.ProcessAudio(args[0], func(a audio.ProbedAudio) {
 				parentDir := filepath.Dir(a.Filename)
 				parentDirName := filepath.Base(parentDir)
 				if _, ok := audio.Groups[parentDirName]; ok {
-					parents.Store(parentDir, struct{}{})
 					parentDir = filepath.Dir(parentDir)
 				}
+				lock.Lock()
+				parents[parentDir] = struct{}{}
+				lock.Unlock()
+
 				group := a.Group
 				if group == f.rootLevel {
 					group = ""
 				}
-
-				parents.Store(parentDir, struct{}{})
 				a.Print()
 				mv := fileutils.MoveConfig{
 					Src:    a.Filename,
@@ -78,20 +80,19 @@ func newSortCommand() *cobra.Command {
 			}
 
 			if !f.dryRun {
-				parents.Range(func(parent, _ any) bool {
+				for parent := range parents {
 					for group := range audio.Groups {
-						dir := filepath.Join(parent.(string), group)
+						dir := filepath.Join(parent, group)
 						if !removableGroupDir(dir) {
-							return true
+							continue
 						}
 						if err := os.RemoveAll(dir); err != nil {
 							slog.Error("Error removing empty directory", slog.String("dir", dir), slog.Any("err", err))
-							return true
+							continue
 						}
 						slog.Info("Removed empty directory", slog.String("dir", dir))
 					}
-					return true
-				})
+				}
 			}
 
 			slog.Info("Audio files sorted",
