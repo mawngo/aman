@@ -32,22 +32,19 @@ func newFillCommand() *cobra.Command {
 			f.groups = lo.FlatMap(f.groups, func(item string, _ int) []string {
 				return strings.Split(item, ",")
 			})
-			bitrates := lo.SliceToMap(f.groups, func(item string) (string, struct{}) {
-				return item, struct{}{}
-			})
 
 			start := time.Now()
-			checkMap, cnt, err := audio.ProcessMapAudio(args[0], func(check map[string]struct{}, a audio.ProbedAudio) map[string]struct{} {
+			checkMap, cnt, err := audio.ProcessMapAudio(args[0], func(check map[string]string, a audio.ProbedAudio) map[string]string {
 				if check == nil {
-					check = make(map[string]struct{}, len(bitrates)+1)
+					check = make(map[string]string, len(f.groups))
 				}
 
 				if a.Group == audio.GroupFLAC {
-					check[audio.GroupFLAC+":"+a.Filename] = struct{}{}
-					check[audio.GroupFLAC] = struct{}{}
+					check[audio.GroupFLAC] = a.Filename
+					return check
 				}
 
-				check[a.Group] = struct{}{}
+				check[a.Group] = ""
 				return check
 			},
 				audio.WithDepth(f.depth),
@@ -65,16 +62,8 @@ func newFillCommand() *cobra.Command {
 					continue
 				}
 
+				source := availableBitrates[audio.GroupFLAC]
 				delete(availableBitrates, audio.GroupFLAC)
-				source := ""
-				// Find source.
-				for available := range availableBitrates {
-					if strings.HasPrefix(available, audio.GroupFLAC+":") {
-						source = available[len(audio.GroupFLAC+":"):]
-						delete(availableBitrates, available)
-						break
-					}
-				}
 				if source == "" {
 					slog.Warn("Missing source", slog.String("file", basename))
 					return
@@ -83,17 +72,17 @@ func newFillCommand() *cobra.Command {
 				meta := convertMeta{
 					Source:   source,
 					Basename: basename,
-					Missing:  make([]string, 0, len(bitrates)),
+					Missing:  make([]string, 0, len(f.groups)),
 				}
 				if !f.overwrite {
-					for bitrate := range bitrates {
+					for _, bitrate := range f.groups {
 						if _, ok := availableBitrates[bitrate]; ok {
 							continue
 						}
 						meta.Missing = append(meta.Missing, bitrate)
 					}
 				} else {
-					meta.Missing = lo.Keys(bitrates)
+					meta.Missing = f.groups
 				}
 				if len(meta.Missing) == 0 {
 					continue
@@ -139,7 +128,8 @@ func convertAudio(job convertMeta, sema *semaphore.Weighted, cnt *atomic.Int64, 
 		parentDir = filepath.Dir(parentDir)
 	}
 
-	for _, group := range job.Missing {
+	missing := lo.Uniq(job.Missing)
+	for _, group := range missing {
 		if !strings.HasSuffix(group, audio.TypeMp3) {
 			slog.Error("Output format not supported", slog.String("basename", job.Source), slog.String("group", group))
 			continue
