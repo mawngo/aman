@@ -12,14 +12,27 @@ import (
 var createdDir sync.Map
 
 type MoveConfig struct {
-	Src    string
-	Dest   string
-	DryRun bool
+	Src       string
+	Dest      string
+	Overwrite bool
+	DryRun    bool
 }
 
 func MoveFile(conf MoveConfig) bool {
 	if conf.Src == conf.Dest {
 		return false
+	}
+	if !conf.Overwrite {
+		_, err := os.Stat(conf.Dest)
+		if err == nil {
+			return false
+		} else if !os.IsNotExist(err) {
+			slog.Error("Move Error",
+				slog.String("src", conf.Src),
+				slog.String("dst", conf.Dest),
+				slog.Any("err", err))
+			return false
+		}
 	}
 	destDir := filepath.Dir(conf.Dest)
 	slog.Info("Move", slog.String("src", conf.Src), slog.String("to", destDir))
@@ -35,11 +48,28 @@ func MoveFile(conf MoveConfig) bool {
 			slog.String("src", conf.Src),
 			slog.String("dst", conf.Dest),
 			slog.Any("err", err))
+		return false
 	}
 	return true
 }
 
 func CopyFile(conf MoveConfig) bool {
+	if conf.Src == conf.Dest {
+		return false
+	}
+	if !conf.Overwrite {
+		_, err := os.Stat(conf.Dest)
+		if err == nil {
+			return false
+		} else if !os.IsNotExist(err) {
+			slog.Error("Copy Error",
+				slog.String("src", conf.Src),
+				slog.String("dst", conf.Dest),
+				slog.Any("err", err))
+			return false
+		}
+	}
+
 	destDir := filepath.Dir(conf.Dest)
 	EnsureDir(destDir)
 	slog.Info("Copy",
@@ -63,7 +93,7 @@ func CopyFile(conf MoveConfig) bool {
 	defer w.Close()
 	written, err := io.Copy(w, r)
 	if err != nil {
-		slog.Error("Move Error",
+		slog.Error("Copy Error",
 			slog.String("src", conf.Src),
 			slog.String("dst", conf.Dest),
 			slog.String("written", humanize.Bytes(uint64(written))),
