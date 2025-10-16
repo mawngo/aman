@@ -56,6 +56,7 @@ func newFillCommand() *cobra.Command {
 				return
 			}
 
+			slog.Info("Finding missing files to fill...", slog.Int64("files", cnt))
 			jobs := make([]convertMeta, 0, 10)
 			for basename, availableBitrates := range checkMap {
 				if _, ok := availableBitrates[audio.GroupFLAC]; !ok {
@@ -90,7 +91,6 @@ func newFillCommand() *cobra.Command {
 				jobs = append(jobs, meta)
 			}
 
-			checkMap = nil
 			sema := semaphore.NewWeighted(int64(f.concurrency))
 			convertedCnt := atomic.Int64{}
 			for _, job := range jobs {

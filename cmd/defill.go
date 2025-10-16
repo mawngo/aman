@@ -63,6 +63,7 @@ func newDeFillCommand() *cobra.Command {
 				return
 			}
 
+			slog.Info("Finding redundant audio files...", slog.Int64("files", cnt))
 			dirs := make(map[string]struct{})
 			rmCnt := int64(0)
 
