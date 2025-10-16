@@ -159,6 +159,7 @@ func convertAudio(job convertMeta, sema *semaphore.Weighted, cnt *atomic.Int64, 
 					"-v", "error",
 					"-i", job.Source,
 					"-ab", "320k",
+					"-c:v", "copy",
 					"-map_metadata", "0",
 					"-id3v2_version", "3",
 					dest)
