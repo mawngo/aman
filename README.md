@@ -73,8 +73,8 @@ Available Commands:
   sort        Organize audio files to groups by bitrate
   copy        Selectively copy music files by bitrate group
   chk         Checking missing audio files by bitrate group
-  fill        Fill missing audio bitrate groups by converting from FLAC (require ffmpeg)
-  defill      Remove audio of bitrate groups if it already exists in other quality
+  conv        Fill missing audio bitrate groups by converting from FLAC
+  clean       Remove audio of bitrate groups if it already exists in other quality
   help        Help about any command
   completion  Generate the autocompletion script for the specified shell
 

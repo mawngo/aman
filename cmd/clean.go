@@ -20,9 +20,10 @@ func newDeFillCommand() *cobra.Command {
 	}
 
 	command := cobra.Command{
-		Use:   "defill <dir>",
-		Short: "Remove audio of bitrate groups if it already exists in other quality",
-		Args:  cobra.ExactArgs(1),
+		Use:     "clean <dir>",
+		Aliases: []string{"defill"},
+		Short:   "Remove audio of bitrate groups if it already exists in other quality",
+		Args:    cobra.ExactArgs(1),
 		Run: func(_ *cobra.Command, args []string) {
 			bitrates := sliceutils.FlatMapArgsToSet(f.groups)
 			delete(bitrates, audio.GroupFLAC)

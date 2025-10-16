@@ -32,6 +32,7 @@ func newCopyCommand() *cobra.Command {
 			f.order = sliceutils.FlatMapArgs(f.order)
 			bitrates := sliceutils.ToSet(f.order)
 			if _, ok := bitrates[audio.GroupFLAC]; ok {
+				slog.Info("Convert flag is ignored when FLAC is included in order")
 				f.convert = false
 			}
 			excludes := sliceutils.FlatMapArgsToSet(f.excludes)

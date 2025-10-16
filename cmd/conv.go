@@ -21,9 +21,10 @@ func newFillCommand() *cobra.Command {
 	}
 
 	command := cobra.Command{
-		Use:   "fill <dir>",
-		Short: "Fill missing audio bitrate groups by converting from FLAC",
-		Args:  cobra.ExactArgs(1),
+		Use:     "conv <dir>",
+		Short:   "Fill missing audio bitrate groups by converting from FLAC",
+		Aliases: []string{"fill"},
+		Args:    cobra.ExactArgs(1),
 		Run: func(_ *cobra.Command, args []string) {
 			f.groups = sliceutils.FlatMapArgs(f.groups)
 
