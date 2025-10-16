@@ -163,12 +163,19 @@ func (r ProbedAudio) Print() {
 }
 
 func (r ProbedAudio) Location() string {
-	parentDir := filepath.Dir(r.Filename)
-	// Remove group dir from path to get the location dir.
-	if _, ok := Groups[filepath.Base(parentDir)]; ok {
-		parentDir = filepath.Dir(parentDir)
+	return LocationDir(r.Filename)
+}
+
+func LocationDir(file string) string {
+	dir := filepath.Dir(file)
+	return ungroupDir(dir)
+}
+
+func ungroupDir(dir string) string {
+	if _, ok := Groups[filepath.Base(dir)]; ok {
+		return filepath.Dir(dir)
 	}
-	return parentDir
+	return dir
 }
 
 func (r ProbedAudio) Basename() string {

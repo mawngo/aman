@@ -25,13 +25,8 @@ func Convert(conf ConvertConfig) int64 {
 	if targetDir == "" {
 		targetDir = filepath.Dir(conf.Src)
 	}
-	if _, ok := Groups[filepath.Base(targetDir)]; ok {
-		targetDir = filepath.Dir(targetDir)
-	}
-	location := filepath.Dir(conf.Src)
-	if _, ok := Groups[filepath.Base(location)]; ok {
-		location = filepath.Dir(location)
-	}
+	targetDir = ungroupDir(targetDir)
+	location := LocationDir(conf.Src)
 	basename := extractBasename(conf.Src)
 	count := int64(0)
 

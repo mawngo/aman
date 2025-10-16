@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -66,7 +65,7 @@ func newDeFillCommand() *cobra.Command {
 
 					file := availableBitrates[bitrate]
 					files[bitrate] = file
-					dirs[filepath.Dir(file)] = struct{}{}
+					dirs[audio.LocationDir(file)] = struct{}{}
 					delete(availableBitrates, bitrate)
 				}
 
