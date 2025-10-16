@@ -1,6 +1,7 @@
 package audio
 
 import (
+	"aman/internal/sliceutils"
 	"errors"
 	"github.com/charlievieth/fastwalk"
 	"github.com/samber/lo"
@@ -22,6 +23,7 @@ type processAudioConfig struct {
 	concurrency int
 	sort        fastwalk.SortMode
 	progress    bool
+	excludeDirs map[string]struct{}
 }
 
 type ProcessAudioOption func(*processAudioConfig)
@@ -41,6 +43,12 @@ func WithConcurrency(concurrency int) ProcessAudioOption {
 func WithProgress(show bool) ProcessAudioOption {
 	return func(config *processAudioConfig) {
 		config.progress = show
+	}
+}
+
+func WithSkipDirectories(dirs ...string) ProcessAudioOption {
+	return func(config *processAudioConfig) {
+		config.excludeDirs = sliceutils.ToSet(dirs)
 	}
 }
 
@@ -98,6 +106,9 @@ func Scan(root string, handler func(audio ProbedAudio), opts ...ProcessAudioOpti
 		}
 
 		if d.IsDir() {
+			if _, ok := conf.excludeDirs[d.Name()]; ok {
+				return fs.SkipDir
+			}
 			return nil
 		}
 

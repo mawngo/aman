@@ -70,7 +70,8 @@ func newCopyCommand() *cobra.Command {
 			},
 				audio.WithDepth(f.depth),
 				audio.WithProgress(true),
-				audio.WithConcurrency(f.concurrency))
+				audio.WithConcurrency(f.concurrency),
+				audio.WithSkipDirectories(args[1]))
 
 			if err != nil {
 				slog.Error("Error scanning audio files", slog.Any("err", err))
