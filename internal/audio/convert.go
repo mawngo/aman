@@ -13,6 +13,7 @@ type ConvertConfig struct {
 	Src          string
 	TargetDir    string
 	TargetGroups []string
+	Flat         bool
 	Overwrite    bool
 	DryRun       bool
 }
@@ -21,6 +22,11 @@ func Convert(conf ConvertConfig) int64 {
 	if len(conf.TargetGroups) == 0 {
 		return 0
 	}
+	if conf.Flat && len(conf.TargetGroups) > 1 {
+		slog.Error("Flat mode is not supported with multiple target groups")
+		return 0
+	}
+
 	targetDir := conf.TargetDir
 	if targetDir == "" {
 		targetDir = filepath.Dir(conf.Src)
@@ -46,6 +52,10 @@ func Convert(conf ConvertConfig) int64 {
 		}
 
 		dest := filepath.Join(targetDir, group, basename+"."+ext)
+		if conf.Flat {
+			dest = filepath.Join(targetDir, basename+"."+ext)
+			println(dest)
+		}
 		dir := filepath.Dir(dest)
 		if !conf.Overwrite {
 			if _, err := os.Stat(dest); err == nil {

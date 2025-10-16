@@ -31,6 +31,9 @@ func newCopyCommand() *cobra.Command {
 		Run: func(_ *cobra.Command, args []string) {
 			f.order = sliceutils.FlatMapArgs(f.order)
 			bitrates := sliceutils.ToSet(f.order)
+			if _, ok := bitrates[audio.GroupFLAC]; ok {
+				f.convert = false
+			}
 			excludes := sliceutils.FlatMapArgsToSet(f.excludes)
 
 			target := args[1]
@@ -97,12 +100,29 @@ func newCopyCommand() *cobra.Command {
 				}
 
 				lo.Must0(sema.Acquire(context.Background(), 1))
+				if f.convert && a.Group == audio.GroupFLAC {
+					go func() {
+						defer sema.Release(1)
+						cnt := audio.Convert(audio.ConvertConfig{
+							Src:          a.Filename,
+							TargetDir:    filepath.Dir(dest),
+							TargetGroups: f.order[0:1],
+							Overwrite:    f.overwrite,
+							DryRun:       f.dryRun,
+							Flat:         true,
+						})
+						copied.Add(cnt)
+					}()
+					continue
+				}
+
 				go func() {
 					defer sema.Release(1)
 					ok := fileutils.CopyFile(fileutils.MoveConfig{
-						Src:    a.Filename,
-						Dest:   dest,
-						DryRun: f.dryRun,
+						Src:       a.Filename,
+						Dest:      dest,
+						DryRun:    f.dryRun,
+						Overwrite: f.overwrite,
 					})
 					if ok {
 						copied.Add(1)
@@ -134,6 +154,8 @@ func newCopyCommand() *cobra.Command {
 	command.Flags().BoolVar(&f.flat, "flat", f.flat, "Flatten directory structure")
 	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "Number of thread to use")
 	command.Flags().BoolVar(&f.dryRun, "dry-run", f.dryRun, "Test run without coping files")
+	command.Flags().BoolVar(&f.convert, "conv", f.dryRun, "Convert missing bitrate groups if a FLAC source is available")
+	command.Flags().BoolVarP(&f.overwrite, "overwrite", "w", f.overwrite, "Overwrite existing files")
 	return &command
 }
 
@@ -145,5 +167,6 @@ type copyFlags struct {
 	concurrency int
 	dryRun      bool
 	convert     bool
+	overwrite   bool
 	strict      bool
 }
