@@ -62,7 +62,9 @@ func newSortCommand() *cobra.Command {
 				if group == f.rootLevel {
 					group = ""
 				}
-				a.Print()
+				if !f.quiet {
+					a.Print()
+				}
 				mv := fileutils.MoveConfig{
 					Src:    a.Filename,
 					Dest:   filepath.Join(parentDir, group, filepath.Base(a.Filename)),
@@ -73,6 +75,7 @@ func newSortCommand() *cobra.Command {
 				}
 			},
 				audio.WithDepth(f.depth),
+				audio.WithProgress(f.quiet),
 				audio.WithConcurrency(f.concurrency))
 			if err != nil {
 				slog.Error("Error sorting audio files", slog.Any("err", err))
@@ -105,6 +108,7 @@ func newSortCommand() *cobra.Command {
 	command.Flags().IntVar(&f.depth, "depth", f.depth, "Maximum depth to search for audio files")
 	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "Number of thread to use")
 	command.Flags().BoolVar(&f.dryRun, "dry-run", f.dryRun, "Test run without moving files")
+	command.Flags().BoolVar(&f.quiet, "quiet", f.quiet, "Only show moved files")
 	return &command
 }
 
@@ -113,6 +117,7 @@ type sortFlags struct {
 	depth       int
 	concurrency int
 	dryRun      bool
+	quiet       bool
 }
 
 func removableGroupDir(path string) bool {
