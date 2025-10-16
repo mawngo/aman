@@ -13,7 +13,7 @@ import (
 
 func newChkCommand() *cobra.Command {
 	f := chkFlags{
-		groups:      []string{audio.GroupFLAC, audio.Group320Mp3},
+		groups:      []string{audio.GroupFLAC},
 		depth:       -1,
 		concurrency: runtime.NumCPU(),
 	}

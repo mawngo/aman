@@ -14,7 +14,7 @@ import (
 
 func newDeFillCommand() *cobra.Command {
 	f := fillFlags{
-		groups:      []string{audio.Group128Mp3},
+		groups:      []string{audio.Group256aac, audio.Group128Mp3, audio.LowQuality},
 		depth:       -1,
 		concurrency: runtime.NumCPU(),
 	}
