@@ -13,13 +13,10 @@ import (
 )
 
 func newDeFillCommand() *cobra.Command {
-	f := deFillFlags{
-		fillFlags: fillFlags{
-			groups:      []string{audio.Group128Mp3},
-			depth:       -1,
-			concurrency: runtime.NumCPU(),
-		},
-		from: []string{audio.Group320Mp3, audio.GroupFLAC},
+	f := fillFlags{
+		groups:      []string{audio.Group128Mp3},
+		depth:       -1,
+		concurrency: runtime.NumCPU(),
 	}
 
 	command := cobra.Command{
@@ -27,24 +24,13 @@ func newDeFillCommand() *cobra.Command {
 		Short: "Remove audio of bitrate groups if it already exists in other quality",
 		Args:  cobra.ExactArgs(1),
 		Run: func(_ *cobra.Command, args []string) {
-			f.from = lo.FlatMap(f.from, func(item string, _ int) []string {
-				return strings.Split(item, ",")
-			})
-			from := lo.SliceToMap(f.from, func(item string) (string, struct{}) {
-				return item, struct{}{}
-			})
-			from[audio.GroupFLAC] = struct{}{}
-
 			f.groups = lo.FlatMap(f.groups, func(item string, _ int) []string {
 				return strings.Split(item, ",")
 			})
-			bitrates := make(map[string]struct{}, len(f.groups))
-			for _, group := range f.groups {
-				if _, ok := from[group]; ok {
-					continue
-				}
-				bitrates[group] = struct{}{}
-			}
+			bitrates := lo.SliceToMap(f.groups, func(item string) (string, struct{}) {
+				return item, struct{}{}
+			})
+			delete(bitrates, audio.GroupFLAC)
 
 			start := time.Now()
 			checkMap, cnt, err := audio.ProcessMapAudio(args[0], func(check map[string]string, a audio.ProbedAudio) map[string]string {
@@ -68,43 +54,45 @@ func newDeFillCommand() *cobra.Command {
 			rmCnt := int64(0)
 
 			for basename, availableBitrates := range checkMap {
-				for keep := range from {
-					// Check if there is any matching bitrate to keep.
-					if _, ok := availableBitrates[keep]; ok {
-						files := make(map[string]string, len(bitrates))
-						for bitrate := range bitrates {
-							if _, ok = availableBitrates[bitrate]; !ok {
+				maxQuality := 0
+				for bitrate := range availableBitrates {
+					maxQuality = max(maxQuality, audio.Groups[bitrate])
+				}
+
+				files := make(map[string]string, len(bitrates))
+				for bitrate := range bitrates {
+					if _, ok := availableBitrates[bitrate]; !ok {
+						continue
+					}
+					if quality := audio.Groups[bitrate]; quality >= maxQuality {
+						continue
+					}
+
+					file := availableBitrates[bitrate]
+					files[bitrate] = file
+					dirs[filepath.Dir(file)] = struct{}{}
+					delete(availableBitrates, bitrate)
+				}
+
+				if len(files) > 0 {
+					slog.Info("Removing audio",
+						slog.String("basename", basename),
+						slog.String("removes", strings.Join(lo.Keys(files), ",")),
+						slog.String("keep", strings.Join(lo.Keys(availableBitrates), ",")),
+					)
+					for group, file := range files {
+						if !f.dryRun {
+							if err := os.Remove(file); err != nil {
+								slog.Error("Error removing file",
+									slog.String("file", file),
+									slog.Any("err", err))
 								continue
 							}
-
-							file := availableBitrates[bitrate]
-							files[bitrate] = file
-							dirs[filepath.Dir(file)] = struct{}{}
-							delete(availableBitrates, bitrate)
 						}
-
-						if len(files) > 0 {
-							slog.Info("Removing audio",
-								slog.String("basename", basename),
-								slog.String("removes", strings.Join(lo.Keys(files), ",")),
-								slog.String("keep", strings.Join(lo.Keys(availableBitrates), ",")),
-							)
-							for group, file := range files {
-								if !f.dryRun {
-									if err := os.Remove(file); err != nil {
-										slog.Error("Error removing file",
-											slog.String("file", file),
-											slog.Any("err", err))
-										continue
-									}
-								}
-								rmCnt++
-								slog.Info("> Removed",
-									slog.String("file", file),
-									slog.String("group", group))
-							}
-						}
-						break
+						rmCnt++
+						slog.Info("> Removed",
+							slog.String("file", file),
+							slog.String("group", group))
 					}
 				}
 			}
@@ -122,14 +110,8 @@ func newDeFillCommand() *cobra.Command {
 	}
 
 	command.Flags().StringSliceVarP(&f.groups, "groups", "b", f.groups, "Bitrate groups to remove from")
-	command.Flags().StringSliceVarP(&f.from, "from", "f", f.from, "Bitrate groups to keep (FLAC is always included)")
 	command.Flags().IntVar(&f.depth, "depth", f.depth, "Maximum depth to search for audio files")
 	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "Number of thread to use")
 	command.Flags().BoolVar(&f.dryRun, "dry-run", f.dryRun, "Test run without converting files")
 	return &command
-}
-
-type deFillFlags struct {
-	fillFlags
-	from []string
 }
