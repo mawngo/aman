@@ -4,16 +4,14 @@ import (
 	"aman/internal/audio"
 	"aman/internal/fileutils"
 	"aman/internal/sliceutils"
-	"errors"
-	"github.com/mawngo/go-maplock"
+	"context"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
-	"io/fs"
+	"golang.org/x/sync/semaphore"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
-	"slices"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -21,7 +19,7 @@ import (
 
 func newCopyCommand() *cobra.Command {
 	f := copyFlags{
-		order:       []string{audio.GroupFLAC, audio.Group320Mp3},
+		order:       []string{audio.GroupFLAC, audio.Group320aac, audio.Group320Mp3},
 		depth:       -1,
 		concurrency: runtime.NumCPU(),
 	}
@@ -32,11 +30,8 @@ func newCopyCommand() *cobra.Command {
 		Args:  cobra.ExactArgs(2),
 		Run: func(_ *cobra.Command, args []string) {
 			f.order = sliceutils.FlatMapArgs(f.order)
-
-			if !slices.Contains(f.order, audio.Group128Mp3) {
-				// Always fallback to 128.
-				f.order = append(f.order, audio.Group128Mp3)
-			}
+			bitrates := sliceutils.ToSet(f.order)
+			excludes := sliceutils.FlatMapArgsToSet(f.excludes)
 
 			target := args[1]
 			if s, err := os.Stat(target); err == nil && !s.IsDir() {
@@ -44,37 +39,96 @@ func newCopyCommand() *cobra.Command {
 				return
 			}
 
-			slog.Info("Moving files", slog.String("order", strings.Join(f.order, ">")))
 			start := time.Now()
-			copied := atomic.Int64{}
-			lock := maplock.New[string]()
-			count, err := audio.Scan(args[0], func(a audio.ProbedAudio) {
-				filename := filepath.Base(a.Filename)
-				if f.flat {
-					dest := filepath.Join(target, filename)
-					if cpy(a, dest, f.order, lock, f.dryRun) {
-						copied.Add(1)
-					}
-					return
+			checkMap, cnt, err := audio.ScanMap(args[0], func(best audio.ProbedAudio, a audio.ProbedAudio) audio.ProbedAudio {
+				if _, ok := excludes[a.Group]; ok {
+					return best
+				}
+				_, included := bitrates[a.Group]
+				if f.strict && !included {
+					return best
 				}
 
-				rel := lo.Must(filepath.Rel(args[0], a.Location()))
-				dest := filepath.Join(target, rel, filename)
-				if cpy(a, dest, f.order, lock, f.dryRun) {
-					copied.Add(1)
+				if best.Filename == "" {
+					// Initialize.
+					return a
 				}
-			})
+
+				// Compare.
+				_, bestIncluded := bitrates[best.Group]
+				if bestIncluded && !included {
+					return best
+				}
+				if !bestIncluded && included {
+					return a
+				}
+
+				if audio.Groups[a.Group] > audio.Groups[best.Group] {
+					return a
+				}
+				return best
+			},
+				audio.WithDepth(f.depth),
+				audio.WithProgress(true),
+				audio.WithConcurrency(f.concurrency))
+
 			if err != nil {
-				slog.Error("Error copy audio files", slog.Any("err", err))
+				slog.Error("Error scanning audio files", slog.Any("err", err))
 				return
 			}
+
+			slog.Info("Copying files",
+				slog.Int64("files", cnt),
+				slog.String("order", strings.Join(f.order, ">")))
+
+			copied := atomic.Int64{}
+			sema := semaphore.NewWeighted(int64(f.concurrency))
+			for _, a := range checkMap {
+				if a.Filename == "" {
+					continue
+				}
+
+				filename := filepath.Base(a.Filename)
+				dest := filepath.Join(target, filename)
+				if !f.flat {
+					rel := lo.Must(filepath.Rel(args[0], a.Location()))
+					dest = filepath.Join(target, rel, filename)
+				}
+
+				lo.Must0(sema.Acquire(context.Background(), 1))
+				go func() {
+					defer sema.Release(1)
+					ok := fileutils.CopyFile(fileutils.MoveConfig{
+						Src:    a.Filename,
+						Dest:   dest,
+						DryRun: f.dryRun,
+					})
+					if ok {
+						copied.Add(1)
+					}
+				}()
+			}
+
+			if err := sema.Acquire(context.Background(), int64(f.concurrency)); err != nil {
+				slog.Error("Error waiting for copy to complete",
+					slog.Any("err", err),
+					slog.Int64("count", cnt),
+					slog.Int("total", len(checkMap)),
+					slog.Int64("copied", copied.Load()),
+					slog.String("took", time.Since(start).String()))
+				return
+			}
+
 			slog.Info("Audio files copied",
-				slog.Int64("count", count),
+				slog.Int64("count", cnt),
+				slog.Int("total", len(checkMap)),
 				slog.Int64("copied", copied.Load()),
 				slog.String("took", time.Since(start).String()))
 		},
 	}
 	command.Flags().StringSliceVarP(&f.order, "order", "o", f.order, "Preferred quality (group) order")
+	command.Flags().StringSliceVarP(&f.order, "excludes", "e", f.excludes, "Excluded quality group")
+	command.Flags().BoolVar(&f.strict, "strict", f.strict, "Only copy files with the extract quality specified")
 	command.Flags().IntVar(&f.depth, "depth", f.depth, "Maximum depth to search for audio files")
 	command.Flags().BoolVar(&f.flat, "flat", f.flat, "Flatten directory structure")
 	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "Number of thread to use")
@@ -84,39 +138,11 @@ func newCopyCommand() *cobra.Command {
 
 type copyFlags struct {
 	order       []string
+	excludes    []string
 	flat        bool
 	depth       int
 	concurrency int
 	dryRun      bool
 	convert     bool
-}
-
-func cpy(a audio.ProbedAudio, dest string, orders []string, lock *maplock.MapLock[string], dryRun bool) bool {
-	base := strings.TrimSuffix(dest, filepath.Ext(dest))
-	lock.Lock(base)
-	defer lock.Unlock(base)
-	for _, extension := range audio.SupportedExtensions {
-		dest := base + extension
-		if _, err := os.Stat(dest); errors.Is(err, fs.ErrNotExist) {
-			continue
-		}
-		destProbe, err := audio.Probe(dest)
-		if err != nil {
-			slog.Error("Error probing file", slog.String("file", dest), slog.Any("err", err))
-			return false
-		}
-		if slices.Index(orders, destProbe.Group) > slices.Index(orders, a.Group) {
-			return fileutils.CopyFile(fileutils.MoveConfig{
-				Src:    a.Filename,
-				Dest:   dest,
-				DryRun: dryRun,
-			})
-		}
-		return false
-	}
-	return fileutils.CopyFile(fileutils.MoveConfig{
-		Src:    a.Filename,
-		Dest:   dest,
-		DryRun: dryRun,
-	})
+	strict      bool
 }
