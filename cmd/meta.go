@@ -16,7 +16,7 @@ func newMetaCommand() *cobra.Command {
 		Short: "Print metadata of audio files",
 		Args:  cobra.ExactArgs(1),
 		Run: func(_ *cobra.Command, args []string) {
-			_, err := audio.ProcessAudio(args[0], func(r audio.ProbedAudio) {
+			_, err := audio.Scan(args[0], func(r audio.ProbedAudio) {
 				if showJSON {
 					println(string(lo.Must(json.MarshalIndent(r, "", "  "))))
 					return

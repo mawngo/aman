@@ -7,7 +7,9 @@ import (
 	"github.com/samber/lo"
 	"log/slog"
 	"os/exec"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -158,4 +160,22 @@ func (r ProbedAudio) Print() {
 		slog.String("length", r.Duration.String()),
 		slog.Uint64("bitrate", r.BitRate/1000),
 		slog.String("size", humanize.Bytes(r.Size)))
+}
+
+func (r ProbedAudio) Location() string {
+	parentDir := filepath.Dir(r.Filename)
+	// Remove group dir from path to get the location dir.
+	if _, ok := Groups[filepath.Base(parentDir)]; ok {
+		parentDir = filepath.Dir(parentDir)
+	}
+	return parentDir
+}
+
+func (r ProbedAudio) Basename() string {
+	return extractBasename(r.Filename)
+}
+
+func extractBasename(path string) string {
+	basename := filepath.Base(path)
+	return strings.TrimSuffix(basename, filepath.Ext(basename))
 }

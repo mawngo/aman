@@ -43,14 +43,10 @@ func newSortCommand() *cobra.Command {
 			moved := atomic.Int64{}
 			lock := sync.Mutex{}
 			parents := make(map[string]struct{}, 100)
-			count, err := audio.ProcessAudio(args[0], func(a audio.ProbedAudio) {
-				parentDir := filepath.Dir(a.Filename)
-				parentDirName := filepath.Base(parentDir)
-				if _, ok := audio.Groups[parentDirName]; ok {
-					parentDir = filepath.Dir(parentDir)
-				}
+			count, err := audio.Scan(args[0], func(a audio.ProbedAudio) {
+				location := a.Location()
 				lock.Lock()
-				parents[parentDir] = struct{}{}
+				parents[location] = struct{}{}
 				lock.Unlock()
 
 				group := a.Group
@@ -62,7 +58,7 @@ func newSortCommand() *cobra.Command {
 				}
 				mv := fileutils.MoveConfig{
 					Src:    a.Filename,
-					Dest:   filepath.Join(parentDir, group, filepath.Base(a.Filename)),
+					Dest:   filepath.Join(location, group, filepath.Base(a.Filename)),
 					DryRun: f.dryRun,
 				}
 				if fileutils.MoveFile(mv) {

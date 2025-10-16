@@ -33,7 +33,7 @@ func newDeFillCommand() *cobra.Command {
 			delete(bitrates, audio.GroupFLAC)
 
 			start := time.Now()
-			checkMap, cnt, err := audio.ProcessMapAudio(args[0], func(check map[string]string, a audio.ProbedAudio) map[string]string {
+			checkMap, cnt, err := audio.ScanMap(args[0], func(check map[string]string, a audio.ProbedAudio) map[string]string {
 				if check == nil {
 					check = make(map[string]string, len(bitrates))
 				}

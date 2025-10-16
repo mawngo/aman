@@ -44,7 +44,7 @@ func WithProgress(show bool) ProcessAudioOption {
 	}
 }
 
-func ProcessAudio(root string, handler func(audio ProbedAudio), opts ...ProcessAudioOption) (int64, error) {
+func Scan(root string, handler func(audio ProbedAudio), opts ...ProcessAudioOption) (int64, error) {
 	conf := processAudioConfig{
 		depth:       5,
 		concurrency: 0,
@@ -125,12 +125,11 @@ func ProcessAudio(root string, handler func(audio ProbedAudio), opts ...ProcessA
 	return count.Load(), nil
 }
 
-func ProcessMapAudio[T any](root string, handler func(m T, audio ProbedAudio) T, opts ...ProcessAudioOption) (map[string]T, int64, error) {
+func ScanMap[T any](root string, handler func(m T, audio ProbedAudio) T, opts ...ProcessAudioOption) (map[string]T, int64, error) {
 	res := make(map[string]T, 100)
 	lock := sync.Mutex{}
-	count, err := ProcessAudio(root, func(audio ProbedAudio) {
-		basename := filepath.Base(audio.Filename)
-		basename = strings.TrimSuffix(basename, filepath.Ext(basename))
+	count, err := Scan(root, func(audio ProbedAudio) {
+		basename := audio.Basename()
 		lock.Lock()
 		defer lock.Unlock()
 		v, ok := res[basename]

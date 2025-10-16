@@ -5,7 +5,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"log/slog"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -39,17 +38,13 @@ func newChkCommand() *cobra.Command {
 
 			start := time.Now()
 			slog.Info("Scanning audio files...")
-			checkMap, cnt, err := audio.ProcessMapAudio(args[0], func(check map[string]string, a audio.ProbedAudio) map[string]string {
+			checkMap, cnt, err := audio.ScanMap(args[0], func(check map[string]string, a audio.ProbedAudio) map[string]string {
 				if check == nil {
 					check = make(map[string]string, len(bitrates))
 				}
 
 				if _, ok := check["_loc"]; !ok {
-					loc := filepath.Dir(a.Filename)
-					if _, ok := audio.Groups[filepath.Base(loc)]; ok {
-						loc = filepath.Dir(loc)
-					}
-					check["_loc"] = loc
+					check["_loc"] = a.Location()
 				}
 				check[a.Group] = ""
 				return check

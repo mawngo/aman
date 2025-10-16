@@ -49,7 +49,7 @@ func newCopyCommand() *cobra.Command {
 			start := time.Now()
 			copied := atomic.Int64{}
 			lock := maplock.New[string]()
-			count, err := audio.ProcessAudio(args[0], func(a audio.ProbedAudio) {
+			count, err := audio.Scan(args[0], func(a audio.ProbedAudio) {
 				filename := filepath.Base(a.Filename)
 				if f.flat {
 					dest := filepath.Join(target, filename)
