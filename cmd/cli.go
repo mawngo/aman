@@ -41,6 +41,7 @@ func NewCLI() *CLI {
 		},
 	}
 	command.AddCommand(newMetaCommand())
+	command.AddCommand(newLsCommand())
 	command.AddCommand(newSortCommand())
 	command.AddCommand(newCopyCommand())
 	command.AddCommand(newChkCommand())
