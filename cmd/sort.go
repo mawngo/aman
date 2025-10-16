@@ -43,16 +43,34 @@ func newSortCommand() *cobra.Command {
 			moved := atomic.Int64{}
 			lock := sync.Mutex{}
 			parents := make(map[string]struct{}, 100)
+			bestMap := make(map[string]map[string]string, 100)
+
 			count, err := audio.Scan(args[0], func(a audio.ProbedAudio) {
 				location := a.Location()
+				basename := a.Basename()
+
 				lock.Lock()
 				parents[location] = struct{}{}
-				lock.Unlock()
+				if f.best {
+					// Marking alternative best quality audio files if enabled.
+					best, ok := bestMap[basename]
+					if !ok {
+						best = make(map[string]string)
+					}
+					if best != nil {
+						best[a.Group] = a.Filename
+						bestMap[basename] = best
+					}
+				}
 
 				group := a.Group
 				if group == f.rootLevel {
 					group = ""
+					// Reset the best map if the root group is found.
+					bestMap[basename] = nil
 				}
+				lock.Unlock()
+
 				if !f.quiet {
 					a.Print()
 				}
@@ -73,6 +91,10 @@ func newSortCommand() *cobra.Command {
 				return
 			}
 
+			if f.best {
+				moveBackBestFile(bestMap, f)
+			}
+
 			if !f.dryRun {
 				RemoveAllEmptyGroupDirs(parents)
 			}
@@ -88,6 +110,7 @@ func newSortCommand() *cobra.Command {
 	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "Number of thread to use")
 	command.Flags().BoolVar(&f.dryRun, "dry-run", f.dryRun, "Test run without moving files")
 	command.Flags().BoolVar(&f.quiet, "quiet", f.quiet, "Only show moved files")
+	command.Flags().BoolVar(&f.best, "best", f.best, "Move alternative best quality audio files to root directory (except FLAC)")
 	return &command
 }
 
@@ -97,6 +120,51 @@ type sortFlags struct {
 	concurrency int
 	dryRun      bool
 	quiet       bool
+	best        bool
+}
+
+func moveBackBestFile(bestMap map[string]map[string]string, f sortFlags) {
+	moveBack := func(file string) {
+		mv := fileutils.MoveConfig{
+			Src:    file,
+			Dest:   filepath.Join(audio.LocationDir(file), filepath.Base(file)),
+			DryRun: f.dryRun,
+		}
+		fileutils.MoveFile(mv)
+	}
+
+	for _, best := range bestMap {
+		if best == nil {
+			continue
+		}
+
+		if len(best) > 1 {
+			// Does not include FLAC when there are other alternates.
+			delete(best, audio.GroupFLAC)
+		}
+
+		if len(best) == 1 {
+			for _, file := range best {
+				// Get the first (only) file.
+				moveBack(file)
+				break
+			}
+			continue
+		}
+
+		// Select for the best alternative.
+		bestQuality := 0
+		bestFile := ""
+		for bitrate, file := range best {
+			quality := audio.Groups[bitrate]
+			if quality <= bestQuality {
+				continue
+			}
+			bestQuality = quality
+			bestFile = file
+		}
+		moveBack(bestFile)
+	}
 }
 
 func RemoveAllEmptyGroupDirs[T any](dirs map[string]T) {
