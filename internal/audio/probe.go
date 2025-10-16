@@ -19,21 +19,17 @@ const (
 	TypeMp3  = "mp3"
 	TypeFlac = "flac"
 
-	Unknown = "unknown"
+	LowQuality = "low"
 )
 
-var Groups = map[string]bool{
-	GroupFLAC: true,
-	// Mp3 320kbps.
-	Group320Mp3: true,
-	// Mp3 < 320kbps.
-	Group128Mp3: true,
+// Groups is a map of audio group to quality level.
+var Groups = map[string]int{
+	GroupFLAC: 100,
 
-	// Legacy groups, for backward compatibility.
-	"320": false,
-	"128": false,
-	"ll":  false,
-	"l":   false,
+	Group320Mp3: 3,
+	Group128Mp3: 1,
+
+	LowQuality: 0,
 }
 
 var ErrNotAudioFile = errors.New("not an audio file")
@@ -95,9 +91,11 @@ func groupAudio(audio ProbedAudio) string {
 		if audio.BitRate >= 320000 {
 			return Group320Mp3
 		}
-		return Group128Mp3
+		if audio.BitRate >= 128000 {
+			return Group128Mp3
+		}
 	}
-	return Unknown
+	return LowQuality
 }
 
 type stream struct {

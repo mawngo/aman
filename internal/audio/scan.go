@@ -78,7 +78,7 @@ func ProcessAudio(root string, handler func(audio ProbedAudio), opts ...ProcessA
 				case <-done:
 					ticker.Stop()
 					return
-				case _ = <-ticker.C:
+				case <-ticker.C:
 					slog.Info("Scanning audios...", slog.Int64("files", count.Load()))
 				}
 			}

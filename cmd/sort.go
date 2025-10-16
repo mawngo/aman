@@ -4,6 +4,7 @@ import (
 	"aman/internal/audio"
 	"aman/internal/fileutils"
 	"errors"
+	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"io/fs"
 	"log/slog"
@@ -29,16 +30,10 @@ func newSortCommand() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(_ *cobra.Command, args []string) {
 			if f.rootLevel != "" {
-				if enabled, ok := audio.Groups[f.rootLevel]; !ok || !enabled {
-					supported := make([]string, 0, len(audio.Groups))
-					for group, enabled := range audio.Groups {
-						if enabled {
-							supported = append(supported, group)
-						}
-					}
+				if _, ok := audio.Groups[f.rootLevel]; !ok {
 					slog.Error("Invalid root group",
 						slog.String("group", f.rootLevel),
-						slog.String("supported", strings.Join(supported, ", ")))
+						slog.String("supported", strings.Join(lo.Keys(audio.Groups), ", ")))
 					return
 				}
 			}
