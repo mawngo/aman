@@ -83,19 +83,7 @@ func newSortCommand() *cobra.Command {
 			}
 
 			if !f.dryRun {
-				for parent := range parents {
-					for group := range audio.Groups {
-						dir := filepath.Join(parent, group)
-						if !removableGroupDir(dir) {
-							continue
-						}
-						if err := os.RemoveAll(dir); err != nil {
-							slog.Error("Error removing empty directory", slog.String("dir", dir), slog.Any("err", err))
-							continue
-						}
-						slog.Info("Removed empty directory", slog.String("dir", dir))
-					}
-				}
+				RemoveAllEmptyGroupDirs(parents)
 			}
 
 			slog.Info("Audio files sorted",
@@ -118,6 +106,23 @@ type sortFlags struct {
 	concurrency int
 	dryRun      bool
 	quiet       bool
+}
+
+func RemoveAllEmptyGroupDirs[T any](dirs map[string]T) {
+	for parent := range dirs {
+		for group := range audio.Groups {
+			dir := filepath.Join(parent, group)
+			if !removableGroupDir(dir) {
+				continue
+			}
+			if err := os.RemoveAll(dir); err != nil {
+				slog.Error("Error removing empty directory",
+					slog.String("dir", dir), slog.Any("err", err))
+				continue
+			}
+			slog.Info("Removed empty directory", slog.String("dir", dir))
+		}
+	}
 }
 
 func removableGroupDir(path string) bool {
