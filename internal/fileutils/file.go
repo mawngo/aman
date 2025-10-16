@@ -25,6 +25,10 @@ func MoveFile(conf MoveConfig) bool {
 	if !conf.Overwrite {
 		_, err := os.Stat(conf.Dest)
 		if err == nil {
+			slog.Warn("Copy cancelled",
+				slog.String("src", conf.Src),
+				slog.String("dst", conf.Dest),
+				slog.String("err", "file already exists"))
 			return false
 		} else if !os.IsNotExist(err) {
 			slog.Error("Move Error",
@@ -60,6 +64,10 @@ func CopyFile(conf MoveConfig) bool {
 	if !conf.Overwrite {
 		_, err := os.Stat(conf.Dest)
 		if err == nil {
+			slog.Warn("Copy cancelled",
+				slog.String("src", conf.Src),
+				slog.String("dst", conf.Dest),
+				slog.String("err", "file already exists"))
 			return false
 		} else if !os.IsNotExist(err) {
 			slog.Error("Copy Error",
