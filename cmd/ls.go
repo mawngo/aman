@@ -79,7 +79,7 @@ func newLsCommand() *cobra.Command {
 				slog.Info("Audio file",
 					slog.String("basename", basename),
 					slog.String("available", strings.Join(lo.Keys(bitrates), ",")),
-					slog.String("location", loc))
+					slog.String("loc", loc))
 			}
 
 			slog.Info("Listing completed",

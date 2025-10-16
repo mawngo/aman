@@ -5,6 +5,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"log/slog"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -38,11 +39,19 @@ func newChkCommand() *cobra.Command {
 
 			start := time.Now()
 			slog.Info("Scanning audio files...")
-			checkMap, cnt, err := audio.ProcessMapAudio(args[0], func(check map[string]struct{}, a audio.ProbedAudio) map[string]struct{} {
+			checkMap, cnt, err := audio.ProcessMapAudio(args[0], func(check map[string]string, a audio.ProbedAudio) map[string]string {
 				if check == nil {
-					check = make(map[string]struct{}, len(bitrates))
+					check = make(map[string]string, len(bitrates))
 				}
-				check[a.Group] = struct{}{}
+
+				if _, ok := check["_loc"]; !ok {
+					loc := filepath.Dir(a.Filename)
+					if _, ok := audio.Groups[filepath.Base(loc)]; ok {
+						loc = filepath.Dir(loc)
+					}
+					check["_loc"] = loc
+				}
+				check[a.Group] = ""
 				return check
 			},
 				audio.WithDepth(f.depth),
@@ -56,6 +65,8 @@ func newChkCommand() *cobra.Command {
 			missingCnt := 0
 			slog.Info("Checking missing audio bitrates...", slog.Int64("files", cnt))
 			for file, availableBitrates := range checkMap {
+				location := availableBitrates["_loc"]
+				delete(availableBitrates, "_loc")
 				miss := make([]string, 0, len(bitrates))
 
 				for bitrate := range bitrates {
@@ -75,6 +86,7 @@ func newChkCommand() *cobra.Command {
 						slog.String("basename", file),
 						slog.String("available", strings.Join(avail, ",")),
 						slog.String("missing", strings.Join(miss, ",")),
+						slog.String("loc", location),
 					)
 					missingCnt++
 					continue
@@ -94,6 +106,7 @@ func newChkCommand() *cobra.Command {
 						slog.String("basename", file),
 						slog.String("available", strings.Join(avail, ",")),
 						slog.String("missing", strings.Join(miss, ",")),
+						slog.String("loc", location),
 					)
 					missingCnt++
 				}
