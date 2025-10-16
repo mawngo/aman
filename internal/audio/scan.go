@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-var SupportedExtensions = []string{".flac", ".mp3"}
+var SupportedExtensions = []string{".flac", ".mp3", ".m4a"}
 
 type processAudioConfig struct {
 	depth       int

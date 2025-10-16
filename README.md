@@ -2,6 +2,8 @@
 
 Music management tools.
 
+Support flac, mp3, m4a (aac).
+
 ## Installation
 
 Require go 1.24+ and `ffprobe` present on `$PATH`.
@@ -18,9 +20,13 @@ go install github.com/mawngo/aman@latest
 
 Organize music files into folder by bitrate
 
-- `320mp3` >= 320kbps
-- `128mp3` < 320kbps
 - `flac` lossless
+- `512aac` >= 512kbps
+- `320aac` >= 320kbps
+- `256aac` >= 256kbps
+- `320mp3` >= 320kbps
+- `128mp3` >= 128kbps
+- `low` < 128kbps
 
 ```shell
 > aman sort .\mydir
@@ -57,7 +63,7 @@ Selectively copy music files from one directory to another, based on their bitra
 
 ```
 > aman -h  
-Music management tools (.flac, .mp3)
+Music management tools (.flac, .mp3, .m4a)
 
 Usage:
   aman [command]

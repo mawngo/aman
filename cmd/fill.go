@@ -130,12 +130,22 @@ func convertAudio(job convertMeta, sema *semaphore.Weighted, cnt *atomic.Int64, 
 
 	missing := lo.Uniq(job.Missing)
 	for _, group := range missing {
-		if !strings.HasSuffix(group, audio.TypeMp3) {
-			slog.Error("Output format not supported", slog.String("basename", job.Source), slog.String("group", group))
+		mode := audio.TypeMp3
+		bitrate := group
+		if bitrate = strings.TrimSuffix(group, audio.TypeAAC); bitrate != group {
+			mode = "m4a"
+			bitrate += "k"
+		} else if bitrate = strings.TrimSuffix(group, audio.TypeMp3); bitrate != group {
+			mode = "mp3"
+			bitrate += "k"
+		} else {
+			slog.Error("Output format not supported",
+				slog.String("basename", job.Source),
+				slog.String("group", group))
 			continue
 		}
 
-		dest := filepath.Join(parentDir, group, job.Basename+"."+audio.TypeMp3)
+		dest := filepath.Join(parentDir, group, job.Basename+"."+mode)
 		lo.Must0(sema.Acquire(context.Background(), 1))
 		if !overwrite {
 			if _, err := os.Stat(dest); err == nil {
@@ -155,14 +165,26 @@ func convertAudio(job convertMeta, sema *semaphore.Weighted, cnt *atomic.Int64, 
 
 			dir := filepath.Dir(dest)
 			if !dryRun {
-				cmd := exec.Command("ffmpeg",
-					"-v", "error",
-					"-i", job.Source,
-					"-ab", "320k",
-					"-c:v", "copy",
-					"-map_metadata", "0",
-					"-id3v2_version", "3",
-					dest)
+				var cmd *exec.Cmd
+				if mode == "mp3" {
+					cmd = exec.Command("ffmpeg",
+						"-v", "error",
+						"-i", job.Source,
+						"-ab", bitrate,
+						"-c:v", "copy",
+						"-map_metadata", "0",
+						"-id3v2_version", "3",
+						dest)
+				} else {
+					cmd = exec.Command("ffmpeg",
+						"-v", "error",
+						"-i", job.Source,
+						"-c:a", "aac",
+						"-b:a", bitrate,
+						"-c:v", "copy",
+						"-map_metadata", "0",
+						dest)
+				}
 
 				fileutils.EnsureDir(dir)
 				if err := cmd.Run(); err != nil {

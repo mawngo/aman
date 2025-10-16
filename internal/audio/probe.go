@@ -12,12 +12,16 @@ import (
 )
 
 const (
-	Group128Mp3 = "128mp3"
+	Group512aac = "512aac"
+	Group320aac = "320aac"
+	Group256aac = "256aac"
 	Group320Mp3 = "320mp3"
+	Group128Mp3 = "128mp3"
 	GroupFLAC   = "flac"
 
 	TypeMp3  = "mp3"
 	TypeFlac = "flac"
+	TypeAAC  = "aac"
 
 	LowQuality = "low"
 )
@@ -26,7 +30,11 @@ const (
 var Groups = map[string]int{
 	GroupFLAC: 100,
 
-	Group320Mp3: 3,
+	Group512aac: 6,
+	Group320aac: 5,
+	Group320Mp3: 4,
+	Group256aac: 3,
+
 	Group128Mp3: 1,
 
 	LowQuality: 0,
@@ -93,6 +101,17 @@ func groupAudio(audio ProbedAudio) string {
 		}
 		if audio.BitRate >= 128000 {
 			return Group128Mp3
+		}
+	}
+	if audio.CodecName == TypeAAC {
+		if audio.BitRate >= 512000 {
+			return Group512aac
+		}
+		if audio.BitRate >= 320000 {
+			return Group320aac
+		}
+		if audio.BitRate >= 256000 {
+			return Group256aac
 		}
 	}
 	return LowQuality
