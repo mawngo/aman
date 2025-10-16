@@ -23,11 +23,8 @@ Organize music files into folder by bitrate
 - `flac` lossless
 
 ```shell
-> aman .\mydir
+> aman sort .\mydir
 ```
-
-By default, files with bitrate >= 320kbps will be kept in the root directory.
-You can change this behavior using `-g` flag.
 
 | Before        | After               |
 |---------------|---------------------|
@@ -36,6 +33,9 @@ You can change this behavior using `-g` flag.
 | 500.mp3       | 500.mp3             |
 | 96.mp3        | /128mp3/96.mp3      |
 | lossless.flac | /flac/lossless.flac |
+
+By default, files with bitrate >= 320kbps will be kept in the root directory.
+You can change this behavior using `-g` flag.
 
 ### Copy
 
@@ -63,7 +63,7 @@ Usage:
   aman [command]
 
 Available Commands:
-  meta        Print metadata of audio file
+  meta        Print metadata of audio files
   sort        Organize audio files to groups by bitrate
   copy        Selectively copy music files by bitrate group
   chk         Checking missing audio files by bitrate group
