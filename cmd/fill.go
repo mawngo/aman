@@ -2,15 +2,11 @@ package cmd
 
 import (
 	"aman/internal/audio"
-	"aman/internal/fileutils"
 	"context"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/semaphore"
 	"log/slog"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"sync/atomic"
@@ -94,7 +90,17 @@ func newFillCommand() *cobra.Command {
 			sema := semaphore.NewWeighted(int64(f.concurrency))
 			convertedCnt := atomic.Int64{}
 			for _, job := range jobs {
-				convertAudio(job, sema, &convertedCnt, f.dryRun, f.overwrite)
+				lo.Must0(sema.Acquire(context.Background(), 1))
+				go func() {
+					defer sema.Release(1)
+					cnt := audio.Convert(audio.ConvertConfig{
+						Src:          job.Source,
+						TargetGroups: job.Missing,
+						Overwrite:    f.overwrite,
+						DryRun:       f.dryRun,
+					})
+					convertedCnt.Add(cnt)
+				}()
 			}
 
 			if err := sema.Acquire(context.Background(), int64(f.concurrency)); err != nil {
@@ -120,90 +126,6 @@ func newFillCommand() *cobra.Command {
 	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "Number of thread to use")
 	command.Flags().BoolVar(&f.dryRun, "dry-run", f.dryRun, "Test run without converting files")
 	return &command
-}
-
-func convertAudio(job convertMeta, sema *semaphore.Weighted, cnt *atomic.Int64, dryRun bool, overwrite bool) {
-	parentDir := filepath.Dir(job.Source)
-	if _, ok := audio.Groups[filepath.Base(parentDir)]; ok {
-		parentDir = filepath.Dir(parentDir)
-	}
-
-	missing := lo.Uniq(job.Missing)
-	for _, group := range missing {
-		mode := audio.TypeMp3
-		bitrate := group
-		if bitrate = strings.TrimSuffix(group, audio.TypeAAC); bitrate != group {
-			mode = "m4a"
-			bitrate += "k"
-		} else if bitrate = strings.TrimSuffix(group, audio.TypeMp3); bitrate != group {
-			mode = "mp3"
-			bitrate += "k"
-		} else {
-			slog.Error("Output format not supported",
-				slog.String("basename", job.Source),
-				slog.String("group", group))
-			continue
-		}
-
-		dest := filepath.Join(parentDir, group, job.Basename+"."+mode)
-		lo.Must0(sema.Acquire(context.Background(), 1))
-		if !overwrite {
-			if _, err := os.Stat(dest); err == nil {
-				slog.Warn("File already exists", slog.String("file", dest))
-				continue
-			} else if !os.IsNotExist(err) {
-				slog.Error("Error checking file", slog.String("file", dest), slog.Any("err", err))
-				continue
-			}
-		}
-
-		go func() {
-			defer sema.Release(1)
-			slog.Info("Converting",
-				slog.String("basename", job.Basename),
-				slog.String("group", group))
-
-			dir := filepath.Dir(dest)
-			if !dryRun {
-				var cmd *exec.Cmd
-				if mode == "mp3" {
-					cmd = exec.Command("ffmpeg",
-						"-v", "error",
-						"-i", job.Source,
-						"-ab", bitrate,
-						"-c:v", "copy",
-						"-map_metadata", "0",
-						"-id3v2_version", "3",
-						dest)
-				} else {
-					cmd = exec.Command("ffmpeg",
-						"-v", "error",
-						"-i", job.Source,
-						"-c:a", "aac",
-						"-b:a", bitrate,
-						"-c:v", "copy",
-						"-map_metadata", "0",
-						dest)
-				}
-
-				fileutils.EnsureDir(dir)
-				if err := cmd.Run(); err != nil {
-					slog.Error("Error converting",
-						slog.String("basename", job.Basename),
-						slog.String("group", group),
-						slog.String("todir", dir),
-						slog.Any("err", err))
-					return
-				}
-				cnt.Add(1)
-			}
-
-			slog.Info("Converted",
-				slog.String("basename", job.Basename),
-				slog.String("group", group),
-				slog.String("todir", dir))
-		}()
-	}
 }
 
 type fillFlags struct {
