@@ -14,7 +14,6 @@ import (
 )
 
 const (
-	Group512aac = "512aac"
 	Group320aac = "320aac"
 	Group256aac = "256aac"
 	Group320Mp3 = "320mp3"
@@ -32,7 +31,6 @@ const (
 var Groups = map[string]int{
 	GroupFLAC: 100,
 
-	Group512aac: 6,
 	Group320aac: 5,
 	Group320Mp3: 4,
 	Group256aac: 3,
@@ -106,9 +104,6 @@ func groupAudio(audio ProbedAudio) string {
 		}
 	}
 	if audio.CodecName == TypeAAC {
-		if audio.BitRate >= 512000 {
-			return Group512aac
-		}
 		if audio.BitRate >= 320000 {
 			return Group320aac
 		}

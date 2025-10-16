@@ -21,7 +21,6 @@ go install github.com/mawngo/aman@latest
 Organize music files into folder by bitrate
 
 - `flac` lossless
-- `512aac` >= 512kbps
 - `320aac` >= 320kbps
 - `256aac` >= 256kbps
 - `320mp3` >= 320kbps
@@ -32,15 +31,15 @@ Organize music files into folder by bitrate
 > aman sort .\mydir
 ```
 
-| Before        | After               |
-|---------------|---------------------|
-| 128.mp3       | /128mp3/128.mp3     |
-| 320.mp3       | 320.mp3             |
-| 500.mp3       | 500.mp3             |
-| 96.mp3        | /128mp3/96.mp3      |
-| lossless.flac | /flac/lossless.flac |
+| Before        | After           |
+|---------------|-----------------|
+| 128.mp3       | /128mp3/128.mp3 |
+| 320.mp3       | /320mp3/320.mp3 |
+| 320.m4a       | /320aac/320.m4a |
+| 96.mp3        | /low/96.mp3     |
+| lossless.flac | /lossless.flac  |
 
-By default, files with bitrate >= 320kbps will be kept in the root directory.
+By default, flac files will be kept in the root directory.
 You can change this behavior using `-g` flag.
 
 ### Copy
