@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"aman/internal/audio"
+	"aman/internal/sliceutils"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"log/slog"
@@ -22,19 +23,8 @@ func newChkCommand() *cobra.Command {
 		Short: "Checking missing audio files by bitrate group",
 		Args:  cobra.ExactArgs(1),
 		Run: func(_ *cobra.Command, args []string) {
-			f.groups = lo.FlatMap(f.groups, func(item string, _ int) []string {
-				return strings.Split(item, ",")
-			})
-			bitrates := lo.SliceToMap(f.groups, func(item string) (string, struct{}) {
-				return item, struct{}{}
-			})
-
-			f.excludes = lo.FlatMap(f.excludes, func(item string, _ int) []string {
-				return strings.Split(item, ",")
-			})
-			excludes := lo.SliceToMap(f.excludes, func(item string) (string, struct{}) {
-				return item, struct{}{}
-			})
+			bitrates := sliceutils.FlatMapArgsToSet(f.groups)
+			excludes := sliceutils.FlatMapArgsToSet(f.excludes)
 
 			start := time.Now()
 			slog.Info("Scanning audio files...")

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"aman/internal/audio"
+	"aman/internal/sliceutils"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"log/slog"
@@ -24,12 +25,7 @@ func newDeFillCommand() *cobra.Command {
 		Short: "Remove audio of bitrate groups if it already exists in other quality",
 		Args:  cobra.ExactArgs(1),
 		Run: func(_ *cobra.Command, args []string) {
-			f.groups = lo.FlatMap(f.groups, func(item string, _ int) []string {
-				return strings.Split(item, ",")
-			})
-			bitrates := lo.SliceToMap(f.groups, func(item string) (string, struct{}) {
-				return item, struct{}{}
-			})
+			bitrates := sliceutils.FlatMapArgsToSet(f.groups)
 			delete(bitrates, audio.GroupFLAC)
 
 			start := time.Now()

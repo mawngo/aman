@@ -2,13 +2,13 @@ package cmd
 
 import (
 	"aman/internal/audio"
+	"aman/internal/sliceutils"
 	"context"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/semaphore"
 	"log/slog"
 	"runtime"
-	"strings"
 	"sync/atomic"
 	"time"
 )
@@ -22,12 +22,10 @@ func newFillCommand() *cobra.Command {
 
 	command := cobra.Command{
 		Use:   "fill <dir>",
-		Short: "Fill missing audio bitrate groups by converting from FLAC (require ffmpeg)",
+		Short: "Fill missing audio bitrate groups by converting from FLAC",
 		Args:  cobra.ExactArgs(1),
 		Run: func(_ *cobra.Command, args []string) {
-			f.groups = lo.FlatMap(f.groups, func(item string, _ int) []string {
-				return strings.Split(item, ",")
-			})
+			f.groups = sliceutils.FlatMapArgs(f.groups)
 
 			start := time.Now()
 			checkMap, cnt, err := audio.ScanMap(args[0], func(check map[string]string, a audio.ProbedAudio) map[string]string {

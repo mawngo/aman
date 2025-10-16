@@ -3,6 +3,7 @@ package cmd
 import (
 	"aman/internal/audio"
 	"aman/internal/fileutils"
+	"aman/internal/sliceutils"
 	"errors"
 	"github.com/mawngo/go-maplock"
 	"github.com/samber/lo"
@@ -30,9 +31,7 @@ func newCopyCommand() *cobra.Command {
 		Short: "Selectively copy music files by bitrate group",
 		Args:  cobra.ExactArgs(2),
 		Run: func(_ *cobra.Command, args []string) {
-			f.order = lo.FlatMap(f.order, func(item string, _ int) []string {
-				return strings.Split(item, ",")
-			})
+			f.order = sliceutils.FlatMapArgs(f.order)
 
 			if !slices.Contains(f.order, audio.Group128Mp3) {
 				// Always fallback to 128.
@@ -59,12 +58,7 @@ func newCopyCommand() *cobra.Command {
 					return
 				}
 
-				parent := filepath.Dir(a.Filename)
-				if _, ok := audio.Groups[filepath.Base(parent)]; ok {
-					parent = filepath.Dir(parent)
-				}
-
-				rel := lo.Must(filepath.Rel(args[0], parent))
+				rel := lo.Must(filepath.Rel(args[0], a.Location()))
 				dest := filepath.Join(target, rel, filename)
 				if cpy(a, dest, f.order, lock, f.dryRun) {
 					copied.Add(1)
@@ -94,6 +88,7 @@ type copyFlags struct {
 	depth       int
 	concurrency int
 	dryRun      bool
+	convert     bool
 }
 
 func cpy(a audio.ProbedAudio, dest string, orders []string, lock *maplock.MapLock[string], dryRun bool) bool {

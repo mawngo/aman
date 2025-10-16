@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"aman/internal/audio"
+	"aman/internal/sliceutils"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"log/slog"
@@ -22,24 +23,10 @@ func newLsCommand() *cobra.Command {
 		Short: "List audio files",
 		Args:  cobra.ExactArgs(1),
 		Run: func(_ *cobra.Command, args []string) {
-			f.groups = lo.FlatMap(f.groups, func(item string, _ int) []string {
-				return strings.Split(item, ",")
-			})
-			includes := lo.SliceToMap(f.groups, func(item string) (string, struct{}) {
-				return item, struct{}{}
-			})
-			listAll := false
-			if _, ok := includes["*"]; ok {
-				listAll = true
-			}
+			includes := sliceutils.FlatMapArgsToSet(f.groups)
+			excludes := sliceutils.FlatMapArgsToSet(f.excludes)
 
-			f.excludes = lo.FlatMap(f.excludes, func(item string, _ int) []string {
-				return strings.Split(item, ",")
-			})
-			excludes := lo.SliceToMap(f.excludes, func(item string) (string, struct{}) {
-				return item, struct{}{}
-			})
-
+			_, listAll := includes["*"]
 			start := time.Now()
 			slog.Info("Scanning audio files...")
 			checkMap, cnt, err := audio.ScanMap(args[0], func(check map[string]string, a audio.ProbedAudio) map[string]string {
