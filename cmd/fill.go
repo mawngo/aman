@@ -85,11 +85,15 @@ func newFillCommand() *cobra.Command {
 					Basename: basename,
 					Missing:  make([]string, 0, len(bitrates)),
 				}
-				for bitrate := range bitrates {
-					if _, ok := availableBitrates[bitrate]; ok {
-						continue
+				if !f.overwrite {
+					for bitrate := range bitrates {
+						if _, ok := availableBitrates[bitrate]; ok {
+							continue
+						}
+						meta.Missing = append(meta.Missing, bitrate)
 					}
-					meta.Missing = append(meta.Missing, bitrate)
+				} else {
+					meta.Missing = lo.Keys(bitrates)
 				}
 				if len(meta.Missing) == 0 {
 					continue
@@ -101,7 +105,7 @@ func newFillCommand() *cobra.Command {
 			sema := semaphore.NewWeighted(int64(f.concurrency))
 			convertedCnt := atomic.Int64{}
 			for _, job := range jobs {
-				convertAudio(job, sema, &convertedCnt, f.dryRun)
+				convertAudio(job, sema, &convertedCnt, f.dryRun, f.overwrite)
 			}
 
 			if err := sema.Acquire(context.Background(), int64(f.concurrency)); err != nil {
@@ -121,14 +125,15 @@ func newFillCommand() *cobra.Command {
 		},
 	}
 
-	command.Flags().StringSliceVarP(&f.groups, "groups", "b", f.groups, "Bitrate groups to fill for [320, 128]")
+	command.Flags().StringSliceVarP(&f.groups, "groups", "b", f.groups, "Bitrate groups to fill for")
+	command.Flags().BoolVarP(&f.overwrite, "overwrite", "w", f.overwrite, "Overwrite existing files")
 	command.Flags().IntVar(&f.depth, "depth", f.depth, "Maximum depth to search for audio files")
 	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "Number of thread to use")
 	command.Flags().BoolVar(&f.dryRun, "dry-run", f.dryRun, "Test run without converting files")
 	return &command
 }
 
-func convertAudio(job convertMeta, sema *semaphore.Weighted, cnt *atomic.Int64, dryRun bool) {
+func convertAudio(job convertMeta, sema *semaphore.Weighted, cnt *atomic.Int64, dryRun bool, overwrite bool) {
 	parentDir := filepath.Dir(job.Source)
 	if _, ok := audio.Groups[filepath.Base(parentDir)]; ok {
 		parentDir = filepath.Dir(parentDir)
@@ -142,12 +147,14 @@ func convertAudio(job convertMeta, sema *semaphore.Weighted, cnt *atomic.Int64, 
 
 		dest := filepath.Join(parentDir, group, job.Basename+"."+audio.TypeMp3)
 		lo.Must0(sema.Acquire(context.Background(), 1))
-		if _, err := os.Stat(dest); err == nil {
-			slog.Warn("File already exists", slog.String("file", dest))
-			continue
-		} else if !os.IsNotExist(err) {
-			slog.Error("Error checking file", slog.String("file", dest), slog.Any("err", err))
-			continue
+		if !overwrite {
+			if _, err := os.Stat(dest); err == nil {
+				slog.Warn("File already exists", slog.String("file", dest))
+				continue
+			} else if !os.IsNotExist(err) {
+				slog.Error("Error checking file", slog.String("file", dest), slog.Any("err", err))
+				continue
+			}
 		}
 
 		go func() {
@@ -191,6 +198,7 @@ type fillFlags struct {
 	depth       int
 	concurrency int
 	dryRun      bool
+	overwrite   bool
 }
 
 type convertMeta struct {
