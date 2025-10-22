@@ -3,8 +3,8 @@ package audio
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/dustin/go-humanize"
-	"github.com/samber/lo"
 	"log/slog"
 	"os/exec"
 	"path/filepath"
@@ -41,6 +41,7 @@ var Groups = map[string]int{
 }
 
 var ErrNotAudioFile = errors.New("not an audio file")
+var ErrInvalidFormat = errors.New("invalid audio format")
 
 func Probe(filename string) (ProbedAudio, error) {
 	cmd := exec.Command("ffprobe",
@@ -63,14 +64,20 @@ func Probe(filename string) (ProbedAudio, error) {
 		return ProbedAudio{}, ErrNotAudioFile
 	}
 
-	duration := lo.Must(strconv.ParseFloat(data.Format.Duration, 64))
-	size := lo.Must(strconv.ParseUint(data.Format.Size, 10, 64))
+	duration, err := strconv.ParseFloat(data.Format.Duration, 64)
+	if err != nil {
+		return ProbedAudio{}, fmt.Errorf("invalid duration \"%s\": %w", data.Format.Duration, ErrInvalidFormat)
+	}
+	size, err := strconv.ParseUint(data.Format.Size, 10, 64)
+	if err != nil {
+		return ProbedAudio{}, fmt.Errorf("invalid size \"%s\": %w", data.Format.Size, ErrInvalidFormat)
+	}
 
 	bitrate := uint64(0)
 	if data.Streams[0].BitRate != "" {
 		bitrate, err = strconv.ParseUint(data.Streams[0].BitRate, 10, 64)
 		if err != nil {
-			return ProbedAudio{}, err
+			return ProbedAudio{}, fmt.Errorf("invalid bitrate \"%s\": %w", data.Streams[0].BitRate, ErrInvalidFormat)
 		}
 	}
 	if bitrate == 0 {

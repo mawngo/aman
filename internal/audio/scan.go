@@ -119,7 +119,9 @@ func Scan(root string, handler func(audio ProbedAudio), opts ...ProcessAudioOpti
 
 		audio, err := Probe(path)
 		if err != nil {
-			slog.Warn("Error probing audio", slog.Any("err", err))
+			slog.Error("Error probing audio",
+				slog.String("file", path),
+				slog.Any("err", err))
 			return nil
 		}
 		count.Add(1)
