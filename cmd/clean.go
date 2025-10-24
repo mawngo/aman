@@ -86,7 +86,7 @@ func newDeFillCommand() *cobra.Command {
 							}
 						}
 						rmCnt++
-						slog.Info("> Removed",
+						slog.Info("  Removed",
 							slog.String("file", file),
 							slog.String("group", group))
 					}

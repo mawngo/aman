@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -16,39 +17,52 @@ type MoveConfig struct {
 	Dest      string
 	Overwrite bool
 	DryRun    bool
+
+	Indent int
 }
 
 func MoveFile(conf MoveConfig) bool {
 	if conf.Src == conf.Dest {
 		return false
 	}
+
+	indent := strings.Repeat("   ", conf.Indent)
 	if !conf.Overwrite {
 		_, err := os.Stat(conf.Dest)
 		if err == nil {
-			slog.Warn("Copy cancelled",
+			slog.Warn(indent+"Copy cancelled",
 				slog.String("src", conf.Src),
 				slog.String("dst", conf.Dest),
 				slog.String("err", "file already exists"))
 			return false
 		} else if !os.IsNotExist(err) {
-			slog.Error("Move Error",
+			slog.Error(indent+"Move Error",
 				slog.String("src", conf.Src),
 				slog.String("dst", conf.Dest),
 				slog.Any("err", err))
 			return false
 		}
 	}
+
 	destDir := filepath.Dir(conf.Dest)
-	slog.Info("Move", slog.String("src", conf.Src), slog.String("to", destDir))
+	destName := filepath.Base(conf.Dest)
+	if destName == filepath.Base(conf.Src) {
+		destName = destDir
+	} else {
+		destName = filepath.Join(destDir, destName)
+	}
+	slog.Info(indent+"Move", slog.String("src", conf.Src), slog.String("to", destName))
 
 	if conf.DryRun {
 		return false
 	}
 
-	EnsureDir(destDir)
+	if EnsureDir(destDir) {
+		slog.Info(indent+"Created", slog.String("dir", destDir))
+	}
 	err := os.Rename(conf.Src, conf.Dest)
 	if err != nil {
-		slog.Error("Move Error",
+		slog.Error(indent+"Move Error",
 			slog.String("src", conf.Src),
 			slog.String("dst", conf.Dest),
 			slog.Any("err", err))
@@ -61,16 +75,17 @@ func CopyFile(conf MoveConfig) bool {
 	if conf.Src == conf.Dest {
 		return false
 	}
+	indent := strings.Repeat("   ", conf.Indent)
 	if !conf.Overwrite {
 		_, err := os.Stat(conf.Dest)
 		if err == nil {
-			slog.Warn("Copy cancelled",
+			slog.Warn(indent+"Copy cancelled",
 				slog.String("src", conf.Src),
 				slog.String("dst", conf.Dest),
 				slog.String("err", "file already exists"))
 			return false
 		} else if !os.IsNotExist(err) {
-			slog.Error("Copy Error",
+			slog.Error(indent+"Copy Error",
 				slog.String("src", conf.Src),
 				slog.String("dst", conf.Dest),
 				slog.Any("err", err))
@@ -79,29 +94,38 @@ func CopyFile(conf MoveConfig) bool {
 	}
 
 	destDir := filepath.Dir(conf.Dest)
-	EnsureDir(destDir)
-	slog.Info("Copy",
+	destName := filepath.Base(conf.Dest)
+	if destName == filepath.Base(conf.Src) {
+		destName = destDir
+	} else {
+		destName = filepath.Join(destDir, destName)
+	}
+	slog.Info(indent+"Copy",
 		slog.String("src", conf.Src),
-		slog.String("to", destDir))
+		slog.String("to", destName))
+
 	if conf.DryRun {
 		return false
 	}
 
+	if EnsureDir(destDir) {
+		slog.Info(indent+"Created", slog.String("dir", destDir))
+	}
 	r, err := os.Open(conf.Src)
 	if err != nil {
-		slog.Error("Cannot open source file", slog.String("src", conf.Src), slog.Any("err", err))
+		slog.Error(indent+"Cannot open source file", slog.String("src", conf.Src), slog.Any("err", err))
 		return false
 	}
 	defer r.Close()
 	w, err := os.Create(conf.Dest)
 	if err != nil {
-		slog.Error("Cannot create destination file", slog.String("src", conf.Dest), slog.Any("err", err))
+		slog.Error(indent+"Cannot create destination file", slog.String("src", conf.Dest), slog.Any("err", err))
 		return false
 	}
 	defer w.Close()
 	written, err := io.Copy(w, r)
 	if err != nil {
-		slog.Error("Copy Error",
+		slog.Error(indent+"Copy Error",
 			slog.String("src", conf.Src),
 			slog.String("dst", conf.Dest),
 			slog.String("written", humanize.Bytes(uint64(written))),
@@ -111,18 +135,24 @@ func CopyFile(conf MoveConfig) bool {
 	return true
 }
 
-func EnsureDir(dir string) {
+func EnsureDir(dir string) bool {
 	if _, ok := createdDir.Load(dir); ok {
-		return
+		return false
 	}
 	if _, serr := os.Stat(dir); serr != nil {
+		if !os.IsNotExist(serr) {
+			panic(serr)
+		}
+
 		merr := os.MkdirAll(dir, os.ModePerm)
 		if merr != nil {
 			panic(merr)
 		}
-		slog.Info("Created", slog.String("dir", dir))
 		createdDir.Store(dir, struct{}{})
+		return true
 	}
+	// Already exists.
+	return false
 }
 
 func DirSize(path string) int64 {
