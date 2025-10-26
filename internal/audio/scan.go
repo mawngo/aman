@@ -16,6 +16,7 @@ import (
 	"time"
 )
 
+var ExportFilename = "tracklist.csv"
 var SupportedExtensions = []string{".flac", ".mp3", ".m4a"}
 
 type processAudioConfig struct {

@@ -1,6 +1,8 @@
 package fileutils
 
 import (
+	"encoding/csv"
+	"errors"
 	"github.com/dustin/go-humanize"
 	"io"
 	"log/slog"
@@ -9,6 +11,8 @@ import (
 	"strings"
 	"sync"
 )
+
+type CleanupFunc func() error
 
 var createdDir sync.Map
 
@@ -171,4 +175,27 @@ func DirSize(path string) int64 {
 		panic(err)
 	}
 	return size
+}
+
+func CreateCsvFile(path string) (writer *csv.Writer, cleanup CleanupFunc, err error) {
+	file, err := os.Create(path)
+	if err != nil {
+		return
+	}
+
+	writer = csv.NewWriter(file)
+	cleanup = func() (err error) {
+		defer func() {
+			if ferr := file.Close(); ferr != nil {
+				if err != nil {
+					err = errors.Join(err, ferr)
+				}
+			}
+		}()
+
+		writer.Flush()
+		err = writer.Error()
+		return err
+	}
+	return writer, cleanup, nil
 }

@@ -2,10 +2,13 @@ package cmd
 
 import (
 	"aman/internal/audio"
+	"aman/internal/fileutils"
 	"aman/internal/sliceutils"
+	"encoding/csv"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"log/slog"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -17,6 +20,7 @@ func newLsCommand() *cobra.Command {
 		depth:       -1,
 		concurrency: runtime.NumCPU(),
 	}
+	export := false
 
 	command := cobra.Command{
 		Use:   "ls <dir>",
@@ -44,7 +48,7 @@ func newLsCommand() *cobra.Command {
 				if _, ok := check["_loc"]; !ok {
 					check["_loc"] = a.Location()
 				}
-				check[a.Group] = ""
+				check[a.Group] = lo.Ternary(export, a.Filename, "")
 				return check
 			},
 				audio.WithDepth(f.depth),
@@ -55,9 +59,40 @@ func newLsCommand() *cobra.Command {
 				return
 			}
 
+			var writer *csv.Writer
+			if export {
+				exportFile := filepath.Join(args[0], audio.ExportFilename)
+				var cleanup fileutils.CleanupFunc
+				writer, cleanup, err = fileutils.CreateCsvFile(exportFile)
+				if err != nil {
+					slog.Error("Error creating export file",
+						slog.String("file", exportFile),
+						slog.Any("err", err))
+					return
+				}
+				defer func() {
+					if err := cleanup(); err != nil {
+						slog.Error("Error writing export file",
+							slog.String("file", exportFile),
+							slog.Any("err", err))
+						return
+					}
+					slog.Info("Tracklist exported", slog.String("file", exportFile))
+				}()
+			}
+
 			for basename, bitrates := range checkMap {
 				loc := bitrates["_loc"]
 				delete(bitrates, "_loc")
+
+				if export {
+					for bitrate, filename := range bitrates {
+						if err := writer.Write([]string{filename, bitrate, basename}); err != nil {
+							return
+						}
+					}
+				}
+
 				slog.Info("Audio file",
 					slog.String("basename", basename),
 					slog.String("available", strings.Join(lo.Keys(bitrates), ",")),
@@ -76,5 +111,6 @@ func newLsCommand() *cobra.Command {
 	command.Flags().StringSliceVarP(&f.excludes, "excludes", "e", f.excludes, "Excluded groups")
 	command.Flags().IntVar(&f.depth, "depth", f.depth, "Maximum depth to search for audio files")
 	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "Number of thread to use")
+	command.Flags().BoolVar(&export, "export", export, "Export tracklist")
 	return &command
 }
