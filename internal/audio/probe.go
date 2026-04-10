@@ -151,7 +151,7 @@ type ProbedAudio struct {
 	Duration  time.Duration `json:"duration,omitempty"`
 	Size      uint64        `json:"size,omitempty"`
 	Filename  string        `json:"filename,omitempty"`
-	Tags      Tags          `json:"tags,omitempty"`
+	Tags      Tags          `json:"tags,omitzero"`
 	Group     string        `json:"-"`
 }
 
