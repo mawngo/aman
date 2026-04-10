@@ -119,11 +119,11 @@ func newFillCommand() *cobra.Command {
 		},
 	}
 
-	command.Flags().StringSliceVarP(&f.groups, "groups", "b", f.groups, "Bitrate groups to fill for")
-	command.Flags().BoolVarP(&f.overwrite, "overwrite", "w", f.overwrite, "Overwrite existing files")
-	command.Flags().IntVar(&f.depth, "depth", f.depth, "Maximum depth to search for audio files")
-	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "Number of thread to use")
-	command.Flags().BoolVar(&f.dryRun, "dry-run", f.dryRun, "Test run without converting files")
+	command.Flags().StringSliceVarP(&f.groups, "groups", "b", f.groups, "bitrate groups to fill for")
+	command.Flags().BoolVarP(&f.overwrite, "overwrite", "w", f.overwrite, "overwrite existing files")
+	command.Flags().IntVar(&f.depth, "depth", f.depth, "maximum depth to search for audio files")
+	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "number of thread to use")
+	command.Flags().BoolVar(&f.dryRun, "dry-run", f.dryRun, "test run without converting files")
 	return &command
 }
 

@@ -105,12 +105,12 @@ func newSortCommand() *cobra.Command {
 				slog.String("took", time.Since(start).String()))
 		},
 	}
-	command.Flags().StringVarP(&f.rootLevel, "root-group", "g", f.rootLevel, "Group of audio that will be placed at root directory")
-	command.Flags().IntVar(&f.depth, "depth", f.depth, "Maximum depth to search for audio files")
-	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "Number of thread to use")
-	command.Flags().BoolVar(&f.dryRun, "dry-run", f.dryRun, "Test run without moving files")
-	command.Flags().BoolVar(&f.quiet, "quiet", f.quiet, "Only show moved files")
-	command.Flags().BoolVar(&f.best, "best", f.best, "Move alternative best quality audio files to root directory (except FLAC)")
+	command.Flags().StringVarP(&f.rootLevel, "root-group", "g", f.rootLevel, "group of audio that will be placed at root directory")
+	command.Flags().IntVar(&f.depth, "depth", f.depth, "maximum depth to search for audio files")
+	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "number of thread to use")
+	command.Flags().BoolVar(&f.dryRun, "dry-run", f.dryRun, "test run without moving files")
+	command.Flags().BoolVar(&f.quiet, "quiet", f.quiet, "only show moved files")
+	command.Flags().BoolVar(&f.best, "best", f.best, "move alternative best quality audio files to root directory (except FLAC)")
 	return &command
 }
 

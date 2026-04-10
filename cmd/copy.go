@@ -148,15 +148,15 @@ func newCopyCommand() *cobra.Command {
 				slog.String("took", time.Since(start).String()))
 		},
 	}
-	command.Flags().StringSliceVarP(&f.order, "order", "o", f.order, "Preferred quality (group) order")
-	command.Flags().StringSliceVarP(&f.order, "excludes", "e", f.excludes, "Excluded quality group")
-	command.Flags().BoolVar(&f.strict, "strict", f.strict, "Only copy files with the extract quality specified")
-	command.Flags().IntVar(&f.depth, "depth", f.depth, "Maximum depth to search for audio files")
-	command.Flags().BoolVar(&f.flat, "flat", f.flat, "Flatten directory structure")
-	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "Number of thread to use")
-	command.Flags().BoolVar(&f.dryRun, "dry-run", f.dryRun, "Test run without coping files")
-	command.Flags().BoolVar(&f.convert, "conv", f.dryRun, "Convert missing bitrate groups if a FLAC source is available")
-	command.Flags().BoolVarP(&f.overwrite, "overwrite", "w", f.overwrite, "Overwrite existing files")
+	command.Flags().StringSliceVarP(&f.order, "order", "o", f.order, "preferred quality (group) order")
+	command.Flags().StringSliceVarP(&f.order, "excludes", "e", f.excludes, "excluded quality group")
+	command.Flags().BoolVar(&f.strict, "strict", f.strict, "only copy files with the extract quality specified")
+	command.Flags().IntVar(&f.depth, "depth", f.depth, "maximum depth to search for audio files")
+	command.Flags().BoolVar(&f.flat, "flat", f.flat, "flatten directory structure")
+	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "number of thread to use")
+	command.Flags().BoolVar(&f.dryRun, "dry-run", f.dryRun, "test run without coping files")
+	command.Flags().BoolVar(&f.convert, "conv", f.dryRun, "convert missing bitrate groups if a FLAC source is available")
+	command.Flags().BoolVarP(&f.overwrite, "overwrite", "w", f.overwrite, "overwrite existing files")
 	return &command
 }
 

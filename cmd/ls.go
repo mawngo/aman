@@ -107,10 +107,10 @@ func newLsCommand() *cobra.Command {
 		},
 	}
 
-	command.Flags().StringSliceVarP(&f.groups, "groups", "g", f.groups, "Included groups")
-	command.Flags().StringSliceVarP(&f.excludes, "excludes", "e", f.excludes, "Excluded groups")
-	command.Flags().IntVar(&f.depth, "depth", f.depth, "Maximum depth to search for audio files")
-	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "Number of thread to use")
-	command.Flags().BoolVar(&export, "export", export, "Export tracklist")
+	command.Flags().StringSliceVarP(&f.groups, "groups", "g", f.groups, "included groups")
+	command.Flags().StringSliceVarP(&f.excludes, "excludes", "e", f.excludes, "excluded groups")
+	command.Flags().IntVar(&f.depth, "depth", f.depth, "maximum depth to search for audio files")
+	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "number of thread to use")
+	command.Flags().BoolVar(&export, "export", export, "export tracklist")
 	return &command
 }

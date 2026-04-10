@@ -6,13 +6,15 @@ Support flac, mp3, m4a (aac).
 
 ## Installation
 
-Require go 1.24+ and `ffprobe` present on `$PATH`.
+Require go 1.26 and `ffprobe` present on `$PATH`.
 
 If you are using conversion features, you will also need `ffmpeg` present on `$PATH`.
 
 ```shell
 go install github.com/mawngo/aman@latest
 ```
+
+Alternately, check the [Releases](https://github.com/mawngo/aman/releases) page for pre-built binaries.
 
 # Usage
 
@@ -80,7 +82,7 @@ Available Commands:
 
 Flags:
   -h, --help         help for aman
-      --log string   Configure log level [default/verbose/quiet] (default "default")
+      --log string   configure log level [default/verbose/quiet] (default "default")
 
 Use "aman [command] --help" for more information about a command.
 ```

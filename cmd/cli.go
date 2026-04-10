@@ -47,7 +47,7 @@ func NewCLI() *CLI {
 	command.AddCommand(newChkCommand())
 	command.AddCommand(newFillCommand())
 	command.AddCommand(newDeFillCommand())
-	command.PersistentFlags().String("log", "default", "Configure log level [default/verbose/quiet]")
+	command.PersistentFlags().String("log", "default", "configure log level [default/verbose/quiet]")
 	return &CLI{command: &command}
 }
 

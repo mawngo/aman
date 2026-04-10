@@ -103,10 +103,10 @@ func newChkCommand() *cobra.Command {
 		},
 	}
 
-	command.Flags().StringSliceVarP(&f.groups, "groups", "g", f.groups, "Groups to check for")
-	command.Flags().StringSliceVarP(&f.excludes, "excludes", "e", f.excludes, "Groups to exclude from")
-	command.Flags().IntVar(&f.depth, "depth", f.depth, "Maximum depth to search for audio files")
-	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "Number of thread to use")
+	command.Flags().StringSliceVarP(&f.groups, "groups", "g", f.groups, "groups to check for")
+	command.Flags().StringSliceVarP(&f.excludes, "excludes", "e", f.excludes, "groups to exclude from")
+	command.Flags().IntVar(&f.depth, "depth", f.depth, "maximum depth to search for audio files")
+	command.Flags().IntVar(&f.concurrency, "concurrency", f.concurrency, "number of thread to use")
 	return &command
 }
 
